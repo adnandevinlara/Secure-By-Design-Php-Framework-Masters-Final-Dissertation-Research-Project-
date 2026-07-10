@@ -1,0 +1,14 @@
+{
+    "name": "adnan/secure-framework",
+    "description": "Secure-by-Design PHP MVC Framework",
+    "type": "project",
+    "require": {
+        "php": "^8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Core\\": "core/",
+            "App\\": "app/"
+        }
+    }
+}

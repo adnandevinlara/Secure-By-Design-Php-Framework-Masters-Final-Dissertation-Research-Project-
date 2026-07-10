@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# If the user is trying to access a real file (like an image or CSS), let them.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Otherwise, send ALL traffic to our Front Controller
+RewriteRule ^(.*)$ index.php [QSA,L]
