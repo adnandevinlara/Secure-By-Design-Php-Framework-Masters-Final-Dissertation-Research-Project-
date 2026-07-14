@@ -159,4 +159,14 @@ $router->post('/register', function (\Core\Http\Request $req, \Core\Http\Respons
     $controller->processRegister($req, $res);
 });
 
+$router->get('/login', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\AuthController();
+    $controller->showLogin($req, $res);
+});
+
+$router->post('/login', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\AuthController();
+    $controller->processLogin($req, $res);
+});
+
 $router->dispatch();

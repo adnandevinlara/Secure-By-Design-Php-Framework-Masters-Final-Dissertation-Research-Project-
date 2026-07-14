@@ -29,4 +29,13 @@ class User
             return false;
         }
     }
+
+    public static function findByEmail(string $email): array|false
+    {
+        $db = Connection::getInstance();
+        $stmt = $db->prepare("SELECT * FROM users WHERE email = :email");
+        $stmt->execute([':email' => $email]);
+        
+        return $stmt->fetch();
+    }
 }
