@@ -2,37 +2,31 @@
 
 namespace App\Models;
 
-use Core\Database\Model;
+use Core\Database\Connection;
+use PDOException;
 
-class User extends Model
+class User
 {
-    // Tell the base Model class which database table to use
-    protected string $table = 'users';
-
-    // Securely find a user for the login process
-    public function findByEmail(string $email): ?array
+    /**
+     * Securely inserts a new user into the database.
+     */
+    public static function create(string $username, string $email, string $hashedPassword): bool
     {
-        // Notice we are STILL using strict parameterized queries here
-        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE email = :email LIMIT 1");
-        $stmt->execute(['email' => $email]);
+        $db = Connection::getInstance();
         
-        $result = $stmt->fetch();
-        return $result ?: null;
-    }
-
-    // Securely register a new user
-    public function create(string $username, string $email, string $password, string $role = 'Registered'): bool
-    {
-        // ASVS Requirement: Secure Password Hashing
-        $passwordHash = password_hash($password, PASSWORD_ARGON2ID);
-
-        // We use the insert() method we wrote in the core Model class last night
-        return $this->insert([
-            'username'      => $username,
-            'email'         => $email,
-            'password_hash' => $passwordHash,
-            'role'          => $role,
-            'created_at'    => date('Y-m-d H:i:s')
-        ]);
+        // ASVS Requirement: Always use Prepared Statements to prevent SQL Injection
+        // The parameters (:username, etc.) ensure user input is never treated as executable code
+        $stmt = $db->prepare("INSERT INTO users (username, email, password) VALUES (:username, :email, :password)");
+        
+        try {
+            return $stmt->execute([
+                ':username' => $username,
+                ':email' => $email,
+                ':password' => $hashedPassword
+            ]);
+        } catch (PDOException $e) {
+            // If the email already exists, SQLite will throw a constraint violation
+            return false;
+        }
     }
 }

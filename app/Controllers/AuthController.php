@@ -32,16 +32,19 @@ class AuthController extends Controller
             return;
         }
 
-        // OWASP ASVS Requirement: Strong Cryptographic Hashing
-        // Argon2id mathematically protects against GPU brute-force attacks
+        // 1. Hash the password
         $hashedPassword = password_hash($password, PASSWORD_ARGON2ID);
 
-        // Here we will eventually insert the user into the database using our ORM
-        // For right now, we will securely store a success state in the session
+        // 2. Save securely to the database
+        $isCreated = \App\Models\User::create($username, $email, $hashedPassword);
         
-        Session::set('test_auth_status', "User $username securely registered with Argon2id hash: " . substr($hashedPassword, 0, 15) . "...");
+        if ($isCreated) {
+            \Core\Http\Session::set('test_auth_status', "Success! $username was securely registered and saved to the database.");
+        } else {
+            \Core\Http\Session::set('test_auth_status', "Error: Could not register user. Email may already be in use.");
+        }
         
-        // Redirect back to dashboard to see the result
+        // 3. Redirect back to dashboard
         header("Location: /dashboard");
         exit;
     }

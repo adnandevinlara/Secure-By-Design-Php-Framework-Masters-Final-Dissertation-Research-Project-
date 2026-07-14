@@ -9,36 +9,32 @@ class Connection
 {
     private static ?PDO $instance = null;
 
-    // We make the constructor private so developers cannot create multiple unprotected connections
-    private function __construct() {}
-
     public static function getInstance(): PDO
     {
         if (self::$instance === null) {
-            // These credentials match your docker-compose.yml file exactly
-            $host = 'db'; 
-            $db   = 'secure_cms';
-            $user = 'cms_user';
-            $pass = 'cmspassword';
-            $charset = 'utf8mb4';
-
-            $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+            // Using SQLite for a seamless, secure local database
+            $dbPath = __DIR__ . '/../../secure_app.sqlite';
             
-            $options = [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                // CRITICAL SECURITY FIX: Disable emulated prepares to enforce true parameterized queries at the database level
-                PDO::ATTR_EMULATE_PREPARES   => false, 
-            ];
-
             try {
-                self::$instance = new PDO($dsn, $user, $pass, $options);
+                self::$instance = new PDO("sqlite:" . $dbPath);
+                
+                // Enforce strict error handling and security modes
+                self::$instance->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                self::$instance->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+                
+                // Automatically create the users table if it doesn't exist yet
+                self::$instance->exec("CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL,
+                    email TEXT NOT NULL UNIQUE,
+                    password TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )");
             } catch (PDOException $e) {
-                // We intentionally mask the actual error message here to prevent Information Disclosure
-                die("Critical System Error: Database connection failed. (Secure-by-Design Masking Active)");
+                die("Security Exception: Database Connection failed. " . $e->getMessage());
             }
         }
-
+        
         return self::$instance;
     }
 }
