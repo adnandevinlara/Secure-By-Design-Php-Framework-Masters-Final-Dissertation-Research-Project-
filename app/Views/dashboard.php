@@ -22,5 +22,18 @@
         <h3>Recent Security Alert:</h3>
         <code><?php echo $this->escapeHtml($maliciousInputTest); ?></code>
     </div>
+
+    <hr>
+<h3>Secure Form Submission Test</h3>
+<!-- This form submits to our POST route -->
+<form action="/test-post" method="POST">
+    
+    <!-- This securely injects our generated CSRF token -->
+    <?= \Core\Security\Csrf::getFormField(); ?>
+    
+    <button type="submit" style="padding: 10px; background: green; color: white; border: none; cursor: pointer;">
+        Submit Secure Request
+    </button>
+</form>
 </body>
 </html>

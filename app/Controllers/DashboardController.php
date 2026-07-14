@@ -5,17 +5,20 @@ namespace App\Controllers;
 use Core\Http\Controller;
 use Core\Http\Request;
 use Core\Http\Response;
+use Core\Http\Session;
 
 class DashboardController extends Controller
 {
     public function index(Request $req, Response $res): void
     {
-        // We moved the rendering logic here, out of the router
+        // Set a test variable in the secure session
+        Session::set('test_role', 'Super Administrator');
+        
         $html = $this->view->render('dashboard', [
             'username' => 'Adnan Admin',
-            'role' => 'Administrator',
-            // Let's change the message slightly so we know the Controller is working
-            'maliciousInputTest' => '<script>alert("XSS Neutralized via the new Controller!");</script>'
+            // Retrieve the variable from the session to prove it works
+            'role' => Session::get('test_role', 'Guest'),
+            'maliciousInputTest' => '<script>alert("XSS Neutralized!");</script>'
         ]);
 
         $res->html($html);

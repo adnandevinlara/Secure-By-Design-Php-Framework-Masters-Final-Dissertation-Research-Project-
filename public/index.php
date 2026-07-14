@@ -6,15 +6,21 @@ use Core\Http\Router;
 use Core\Http\Request;
 use Core\Http\Response;
 
+// Boot the secure session manager
+\Core\Http\Session::start();
+
 // 1. Initialize the HTTP Lifecycle components
-$request = new Request();
-$response = new Response();
+$request = new \Core\Http\Request();
+$response = new \Core\Http\Response();
 
 // 2. Pass them into the Router
-$router = new Router($request, $response);
+$router = new \Core\Http\Router($request, $response);
 
 // Apply global security headers to every response
 \Core\Middleware\SecurityHeaders::apply();
+
+// Enforce CSRF token validation on all state-changing requests
+\Core\Middleware\CsrfMiddleware::handle();
 
 // 3. Define our test routes (Notice they now use $req and $res)
 $router->get('/', function (Request $req, Response $res) {
@@ -136,5 +142,10 @@ $router->get('/api/test-logger', function ($req, $res) {
 });
 
 $router->get('/dashboard', [\App\Controllers\DashboardController::class, 'index']);
+
+// Test route for valid form submissions
+$router->post('/test-post', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $res->html("Success! The CSRF token was perfectly valid and the request was securely processed.");
+});
 
 $router->dispatch();
