@@ -13,6 +13,11 @@
     <div class="container">
         <h1>Welcome, <?php echo $this->escapeHtml($username); ?>!</h1>
         
+        <div style="background: #e2f0d9; padding: 10px; margin-bottom: 20px;">
+           <strong>Auth System Status:</strong> 
+           <?= \Core\Http\Session::get('test_auth_status', 'Waiting for registration test...'); ?>
+        </div>
+        
         <div class="alert">
             The Context-Aware Template Engine is actively rendering this page and preventing XSS.
         </div>

@@ -148,4 +148,15 @@ $router->post('/test-post', function (\Core\Http\Request $req, \Core\Http\Respon
     $res->html("Success! The CSRF token was perfectly valid and the request was securely processed.");
 });
 
+// Authentication Routes
+$router->get('/register', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\AuthController();
+    $controller->showRegister($req, $res);
+});
+
+$router->post('/register', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\AuthController();
+    $controller->processRegister($req, $res);
+});
+
 $router->dispatch();
