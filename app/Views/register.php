@@ -23,6 +23,10 @@
         <div class="security-badge">
             🔒 Protected by CSRF Middleware & Argon2id Hashing
         </div>
+
+        <div style="color: red; margin-bottom: 15px; text-align: center;">
+            <?= \Core\Http\Session::get('test_auth_status', ''); ?>
+        </div>
         
         <form action="/register" method="POST">
             <!-- CRITICAL: Injecting the CSRF Token -->

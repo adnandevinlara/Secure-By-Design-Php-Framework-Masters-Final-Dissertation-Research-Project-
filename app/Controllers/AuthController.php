@@ -23,29 +23,43 @@ class AuthController extends Controller
      */
     public function processRegister(Request $req, Response $res): void
     {
-        $username = trim($_POST['username'] ?? '');
-        $email = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
+        // 1. Sanitize the incoming data
+        $username = \Core\Security\Validator::sanitizeString($_POST['username'] ?? '');
+        $email = \Core\Security\Validator::sanitizeEmail($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? ''; // Passwords are not sanitized so we don't alter intended characters, but they are validated
 
+        // 2. Validate required fields
         if (empty($username) || empty($email) || empty($password)) {
-            $res->html("Security Exception: All fields are required.");
-            return;
+            \Core\Http\Session::set('test_auth_status', "Security Exception: All fields are required.");
+            header("Location: /register");
+            exit;
         }
 
-        // 1. Hash the password
-        $hashedPassword = password_hash($password, PASSWORD_ARGON2ID);
+        // 3. Validate email format
+        if (!\Core\Security\Validator::isValidEmail($email)) {
+            \Core\Http\Session::set('test_auth_status', "Security Exception: Invalid email format.");
+            header("Location: /register");
+            exit;
+        }
 
-        // 2. Save securely to the database
+        // 4. Validate password strength
+        if (!\Core\Security\Validator::isStrongPassword($password)) {
+            \Core\Http\Session::set('test_auth_status', "Security Exception: Password must be at least 8 characters long and contain a number, an uppercase, and a lowercase letter.");
+            header("Location: /register");
+            exit;
+        }
+
+        // 5. Hash the password and save to database
+        $hashedPassword = password_hash($password, PASSWORD_ARGON2ID);
         $isCreated = \App\Models\User::create($username, $email, $hashedPassword);
         
         if ($isCreated) {
             \Core\Http\Session::set('test_auth_status', "Success! $username was securely registered and saved to the database.");
+            header("Location: /dashboard");
         } else {
             \Core\Http\Session::set('test_auth_status', "Error: Could not register user. Email may already be in use.");
+            header("Location: /register");
         }
-        
-        // 3. Redirect back to dashboard
-        header("Location: /dashboard");
         exit;
     }
 
