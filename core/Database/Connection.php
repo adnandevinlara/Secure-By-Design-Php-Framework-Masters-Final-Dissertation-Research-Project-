@@ -28,6 +28,7 @@ class Connection
                     username TEXT NOT NULL,
                     email TEXT NOT NULL UNIQUE,
                     password TEXT NOT NULL,
+                    role TEXT DEFAULT 'user',
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
             } catch (PDOException $e) {

@@ -73,9 +73,7 @@ class AuthController extends Controller
         $res->html($html);
     }
 
-    /**
-     * Processes the secure login
-     */
+    // Processes the secure login
     public function processLogin(Request $req, Response $res): void
     {
         $email = trim($_POST['email'] ?? '');
@@ -87,6 +85,10 @@ class AuthController extends Controller
         // 1. Check if the firewall has already locked this user out
         if (!\Core\Security\Throttler::isAllowed($throttleKey)) {
             $seconds = \Core\Security\Throttler::getRemainingLockoutSeconds($throttleKey);
+            
+            // ADDED: Log the active lockout block
+            \Core\Security\Logger::log('BRUTE_FORCE_BLOCKED', "Active lockout enforced for email attempt: $email. Remaining: $seconds seconds.");
+            
             \Core\Http\Session::set('test_auth_status', "Security Alert: Too many failed attempts. Locked out for $seconds seconds.");
             header("Location: /login");
             exit;
@@ -103,11 +105,12 @@ class AuthController extends Controller
         // 2. Verify the credentials
         if ($user && password_verify($password, $user['password'])) {
             
-            // Success! Clear any past failed attempts
             \Core\Security\Throttler::clear($throttleKey);
-            
             session_regenerate_id(true);
+            
             \Core\Http\Session::set('user_id', $user['id']);
+            \Core\Http\Session::set('role', $user['role']); // Save the RBAC role
+            
             \Core\Http\Session::set('test_auth_status', "Success! Securely logged in as " . $user['username']);
             
             header("Location: /dashboard");
@@ -116,6 +119,9 @@ class AuthController extends Controller
 
         // 3. If login fails, record the strike against them
         \Core\Security\Throttler::recordFailure($throttleKey);
+        
+        // ADDED: Log the failed credential guess
+        \Core\Security\Logger::log('AUTH_FAILED', "Invalid login attempt for email: $email.");
         
         \Core\Http\Session::set('test_auth_status', "Security Exception: Invalid credentials.");
         header("Location: /login");

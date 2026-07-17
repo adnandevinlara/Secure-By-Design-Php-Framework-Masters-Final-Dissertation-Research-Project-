@@ -1,0 +1,3 @@
+[2026-07-17 20:24:18] [CSRF_VIOLATION] [IP: 172.18.0.1] [User: Guest] Blocked a state-changing request due to a missing or invalid token.
+[2026-07-17 20:38:26] [RBAC_VIOLATION] [IP: 172.18.0.1] [User: Guest] A standard user attempted to access an admin-only route.
+[2026-07-17 20:39:01] [RBAC_VIOLATION] [IP: 172.18.0.1] [User: Guest] A standard user attempted to access an admin-only route.

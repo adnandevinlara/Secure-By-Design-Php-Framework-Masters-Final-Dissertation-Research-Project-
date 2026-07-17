@@ -22,7 +22,7 @@
             The Context-Aware Template Engine is actively rendering this page and preventing XSS.
         </div>
 
-        <p>Your current role is: <?php echo $this->escapeHtml($role); ?></p>
+        <p>Your current role is: <strong><?= ucfirst(\Core\Http\Session::get('role', 'Guest')); ?></strong></p>
         
         <h3>Recent Security Alert:</h3>
         <code><?php echo $this->escapeHtml($maliciousInputTest); ?></code>
