@@ -66,30 +66,44 @@ class AuthController extends Controller
     {
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
+        
+        // Create a unique tracking key for this specific email address
+        $throttleKey = 'login_throttle_' . md5($email);
+
+        // 1. Check if the firewall has already locked this user out
+        if (!\Core\Security\Throttler::isAllowed($throttleKey)) {
+            $seconds = \Core\Security\Throttler::getRemainingLockoutSeconds($throttleKey);
+            \Core\Http\Session::set('test_auth_status', "Security Alert: Too many failed attempts. Locked out for $seconds seconds.");
+            header("Location: /login");
+            exit;
+        }
 
         if (empty($email) || empty($password)) {
-            Session::set('test_auth_status', "Security Exception: Email and password are required.");
+            \Core\Http\Session::set('test_auth_status', "Security Exception: Email and password are required.");
             header("Location: /login");
             exit;
         }
 
         $user = \App\Models\User::findByEmail($email);
 
-        // Verify the user exists AND the password matches the Argon2id hash
+        // 2. Verify the credentials
         if ($user && password_verify($password, $user['password'])) {
             
-            // ASVS Requirement: Defeat Session Fixation attacks by rotating the session ID on login
-            session_regenerate_id(true);
+            // Success! Clear any past failed attempts
+            \Core\Security\Throttler::clear($throttleKey);
             
-            Session::set('user_id', $user['id']);
-            Session::set('test_auth_status', "Success! Securely logged in as " . $user['username']);
+            session_regenerate_id(true);
+            \Core\Http\Session::set('user_id', $user['id']);
+            \Core\Http\Session::set('test_auth_status', "Success! Securely logged in as " . $user['username']);
             
             header("Location: /dashboard");
             exit;
         }
 
-        // Generic error message to prevent username enumeration attacks
-        Session::set('test_auth_status', "Security Exception: Invalid credentials.");
+        // 3. If login fails, record the strike against them
+        \Core\Security\Throttler::recordFailure($throttleKey);
+        
+        \Core\Http\Session::set('test_auth_status', "Security Exception: Invalid credentials.");
         header("Location: /login");
         exit;
     }
