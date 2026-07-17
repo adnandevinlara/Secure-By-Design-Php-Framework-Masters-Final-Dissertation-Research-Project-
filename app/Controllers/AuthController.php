@@ -93,4 +93,12 @@ class AuthController extends Controller
         header("Location: /login");
         exit;
     }
+
+    // Securely logs the user out and destroys the session
+    public function logout(Request $req, Response $res): void
+    {
+        \Core\Http\Session::destroy();
+        header("Location: /login");
+        exit;
+    }
 }

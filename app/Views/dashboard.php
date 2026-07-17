@@ -28,6 +28,10 @@
         <code><?php echo $this->escapeHtml($maliciousInputTest); ?></code>
     </div>
 
+    <div style="margin-top: 20px; text-align: right;">
+        <a href="/logout" style="padding: 10px 15px; background: #dc3545; color: white; text-decoration: none; border-radius: 4px;">Secure Logout</a>
+    </div>
+
     <hr>
 <h3>Secure Form Submission Test</h3>
 <!-- This form submits to our POST route -->

@@ -141,7 +141,20 @@ $router->get('/api/test-logger', function ($req, $res) {
     }
 });
 
-$router->get('/dashboard', [\App\Controllers\DashboardController::class, 'index']);
+// Protected Dashboard Route
+$router->get('/dashboard', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    // 🔒 The Bouncer: Run the Auth Middleware before showing the page
+    \Core\Middleware\AuthMiddleware::handle();
+    
+    $controller = new \App\Controllers\DashboardController();
+    $controller->index($req, $res);
+});
+
+// Logout Route
+$router->get('/logout', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\AuthController();
+    $controller->logout($req, $res);
+});
 
 // Test route for valid form submissions
 $router->post('/test-post', function (\Core\Http\Request $req, \Core\Http\Response $res) {
