@@ -191,10 +191,11 @@ $router->get('/admin-panel', function (\Core\Http\Request $req, \Core\Http\Respo
 });
 
 // Temporary route to upgrade a user to Admin
-$router->get('/make-me-admin', function () {
-    $db = \Core\Database\Connection::getInstance();
-    $db->exec("UPDATE users SET role = 'admin' WHERE id = 1");
-    echo "User 1 has been upgraded to Admin! Please log out and log back in.";
-});
+
+// $router->get('/make-me-admin', function () {
+//     $db = \Core\Database\Connection::getInstance();
+//     $db->exec("UPDATE users SET role = 'admin' WHERE id = 1");
+//     echo "User 1 has been upgraded to Admin! Please log out and log back in.";
+// });
 
 $router->dispatch();
