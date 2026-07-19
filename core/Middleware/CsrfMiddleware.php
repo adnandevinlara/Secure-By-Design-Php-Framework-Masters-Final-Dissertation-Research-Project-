@@ -17,7 +17,7 @@ class CsrfMiddleware
             
             if (!Csrf::verifyToken($token)) {
                 // 🚨 Log the active CSRF attack
-                Logger::log('CSRF_VIOLATION', 'Blocked a state-changing request due to a missing or invalid token.');
+                \Core\Security\Logger::log('CRITICAL', 'CSRF_BLOCKED', 'A state-changing request failed token validation and was intercepted.');
                 
                 http_response_code(403);
                 die("Security Exception: CSRF Token Validation Failed. Request Blocked.");

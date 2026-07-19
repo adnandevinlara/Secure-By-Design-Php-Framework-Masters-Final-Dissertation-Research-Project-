@@ -9,6 +9,9 @@ use Core\Http\Response;
 // Boot the secure session manager
 \Core\Http\Session::start();
 
+// Apply Global Security Headers
+\Core\Middleware\SecurityHeadersMiddleware::handle();
+
 // 1. Initialize the HTTP Lifecycle components
 $request = new \Core\Http\Request();
 $response = new \Core\Http\Response();

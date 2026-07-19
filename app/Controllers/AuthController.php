@@ -87,7 +87,7 @@ class AuthController extends Controller
             $seconds = \Core\Security\Throttler::getRemainingLockoutSeconds($throttleKey);
             
             // ADDED: Log the active lockout block
-            \Core\Security\Logger::log('BRUTE_FORCE_BLOCKED', "Active lockout enforced for email attempt: $email. Remaining: $seconds seconds.");
+            \Core\Security\Logger::log('WARNING', 'BRUTE_FORCE_BLOCKED', "Active lockout enforced for email attempt: $email. Remaining: $seconds seconds.");
             
             \Core\Http\Session::set('test_auth_status', "Security Alert: Too many failed attempts. Locked out for $seconds seconds.");
             header("Location: /login");
@@ -121,7 +121,7 @@ class AuthController extends Controller
         \Core\Security\Throttler::recordFailure($throttleKey);
         
         // ADDED: Log the failed credential guess
-        \Core\Security\Logger::log('AUTH_FAILED', "Invalid login attempt for email: $email.");
+        \Core\Security\Logger::log('ALERT', 'AUTH_FAILED', "Invalid login attempt for email: $email.");
         
         \Core\Http\Session::set('test_auth_status', "Security Exception: Invalid credentials.");
         header("Location: /login");

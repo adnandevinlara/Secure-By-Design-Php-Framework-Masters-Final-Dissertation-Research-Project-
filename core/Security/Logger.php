@@ -7,21 +7,24 @@ class Logger
     // Store logs securely outside the public directory
     private static string $logPath = __DIR__ . '/../../logs/security.log';
 
-    /**
-     * Writes a security event to the log file.
-     */
-    public static function log(string $eventType, string $message, string $username = 'Guest'): void
+    public static function log(string $severity, string $eventType, string $message): void
     {
-        $timestamp = date('Y-m-d H:i:s');
+        $timestamp = date('c'); // ISO 8601 format[cite: 1]
         $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN_IP';
+        $userId = \Core\Http\Session::get('user_id', 'Guest');
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN';
+        $url = $_SERVER['REQUEST_URI'] ?? 'UNKNOWN';
         
-        // Format: [Date] [Event] [IP] [User] Message
+        // Format: [Timestamp] [Severity] [Event] [IP] [User ID] [Method URL] - Message
         $logEntry = sprintf(
-            "[%s] [%s] [IP: %s] [User: %s] %s" . PHP_EOL,
+            "[%s] [%s] [%s] [IP: %s] [UID: %s] [%s %s] - %s" . PHP_EOL,
             $timestamp,
+            strtoupper($severity),
             strtoupper($eventType),
             $ipAddress,
-            $username,
+            $userId,
+            $method,
+            $url,
             $message
         );
 
