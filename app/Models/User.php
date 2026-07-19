@@ -2,27 +2,21 @@
 
 namespace App\Models;
 
-use Core\Database\Connection;
+use Core\Database\ORM;
 use PDOException;
 
 class User
 {
-    /**
-     * Securely inserts a new user into the database.
-     */
-    public static function create(string $username, string $email, string $hashedPassword): bool
+    public static function create(string $username, string $email, string $password): bool
     {
-        $db = Connection::getInstance();
-        
-        // ASVS Requirement: Always use Prepared Statements to prevent SQL Injection
-        // The parameters (:username, etc.) ensure user input is never treated as executable code
-        $stmt = $db->prepare("INSERT INTO users (username, email, password) VALUES (:username, :email, :password)");
+        $orm = new ORM('users');
         
         try {
-            return $stmt->execute([
-                ':username' => $username,
-                ':email' => $email,
-                ':password' => $hashedPassword
+            // Using the strictly parameterized insert method
+            return $orm->insert([
+                'username' => $username,
+                'email' => $email,
+                'password' => $password
             ]);
         } catch (PDOException $e) {
             // If the email already exists, SQLite will throw a constraint violation
@@ -32,10 +26,9 @@ class User
 
     public static function findByEmail(string $email): array|false
     {
-        $db = Connection::getInstance();
-        $stmt = $db->prepare("SELECT * FROM users WHERE email = :email");
-        $stmt->execute([':email' => $email]);
+        $orm = new ORM('users');
         
-        return $stmt->fetch();
+        // Using strict method chaining: ->where()->first()
+        return $orm->where('email', $email)->first();
     }
 }
