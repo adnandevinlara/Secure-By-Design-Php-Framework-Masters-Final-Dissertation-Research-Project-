@@ -10,7 +10,7 @@ use Core\Http\Response;
 \Core\Http\Session::start();
 
 // Apply Global Security Headers
-\Core\Middleware\SecurityHeadersMiddleware::handle();
+\Core\Middleware\SecurityHeadersMiddleware::handle();   
 
 // 1. Initialize the HTTP Lifecycle components
 $request = new \Core\Http\Request();
@@ -62,7 +62,7 @@ $router->get('/api/setup-db', function ($req, $res) {
         username VARCHAR(50) NOT NULL,
         email VARCHAR(100) NOT NULL UNIQUE,
         password_hash VARCHAR(255) NOT NULL,
-        role ENUM('Guest', 'Registered', 'Admin') DEFAULT 'Registered',
+        role VARCHAR(50) DEFAULT 'Registered',
         created_at DATETIME NOT NULL
     )");
 
@@ -70,13 +70,21 @@ $router->get('/api/setup-db', function ($req, $res) {
     $db->exec("CREATE TABLE IF NOT EXISTS security_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
         event_type VARCHAR(50) NOT NULL,
-        severity ENUM('Low', 'Medium', 'High', 'Critical') NOT NULL,
+        severity VARCHAR(50) NOT NULL,
         user_id INT NULL,
         ip_address VARCHAR(45) NOT NULL,
         request_url VARCHAR(255) NOT NULL,
         description TEXT NOT NULL,
-        timestamp DATETIME NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        timestamp DATETIME NOT NULL
+    )");
+
+    // 3. Create the POSTS table for the CMS
+    $db->exec("CREATE TABLE IF NOT EXISTS posts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL,
+        author_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
 
     $res->json(["status" => "success", "message" => "Database tables generated successfully!"]);
@@ -149,7 +157,8 @@ $router->get('/dashboard', function (\Core\Http\Request $req, \Core\Http\Respons
     // 🔒 The Bouncer: Run the Auth Middleware before showing the page
     \Core\Middleware\AuthMiddleware::handle();
     
-    $controller = new \App\Controllers\DashboardController();
+    // FIXED: Route to BlogController instead so it fetches your posts!
+    $controller = new \App\Controllers\BlogController();
     $controller->index($req, $res);
 });
 
@@ -178,6 +187,12 @@ $router->post('/register', function (\Core\Http\Request $req, \Core\Http\Respons
 $router->get('/login', function (\Core\Http\Request $req, \Core\Http\Response $res) {
     $controller = new \App\Controllers\AuthController();
     $controller->showLogin($req, $res);
+});
+
+// Secure Blog Post Submission Route
+$router->post('/post/store', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\BlogController();
+    $controller->store($req, $res);
 });
 
 $router->post('/login', function (\Core\Http\Request $req, \Core\Http\Response $res) {

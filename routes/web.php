@@ -5,6 +5,7 @@
 
 use Core\Router;
 use App\Controllers\AuthController;
+use App\Controllers\BlogController;
 
 $router = new Router();
 
@@ -18,3 +19,7 @@ $router->post('/login', [AuthController::class, 'processLogin'], ['CsrfMiddlewar
 
 // Secure Logout Route
 $router->post('/logout', [AuthController::class, 'logout'], ['CsrfMiddleware']);
+
+// Secure Blog Routes
+$router->get('/dashboard', [BlogController::class, 'index']);
+$router->post('/post/store', [BlogController::class, 'store']);
