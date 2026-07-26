@@ -2,3 +2,17 @@
 [2026-07-17 20:38:26] [RBAC_VIOLATION] [IP: 172.18.0.1] [User: Guest] A standard user attempted to access an admin-only route.
 [2026-07-17 20:39:01] [RBAC_VIOLATION] [IP: 172.18.0.1] [User: Guest] A standard user attempted to access an admin-only route.
 [2026-07-19T20:26:28+00:00] [ALERT] [AUTH_FAILED] [IP: 182.178.80.21] [UID: 2] [POST /login] - Invalid login attempt for email: hacker@test.com.
+[2026-07-26T22:25:10+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: admin@maxxsavage.com.
+[2026-07-26T22:25:26+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: admin@maxxsavage.com.
+[2026-07-26T22:25:32+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: admin@maxxsavage.com.
+[2026-07-26T22:25:38+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: admin@maxxsavage.com.
+[2026-07-26T22:28:00+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: admin@maxxsavage.com.
+[2026-07-26T22:28:44+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: admin@maxxsavage.com.
+[2026-07-26T22:28:49+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: AdnanTest@gmail.com.
+[2026-07-26T22:28:54+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: admin@maxxsavage.com.
+[2026-07-26T22:28:59+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: AdnanTest@gmail.com.
+[2026-07-26T22:29:03+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: admin@maxxsavage.com.
+[2026-07-26T22:29:09+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: AdnanTest@gmail.com.
+[2026-07-26T22:29:14+00:00] [WARNING] [BRUTE_FORCE_LOCKOUT] [IP: 172.18.0.1] [UID: Guest] [POST /login] - User tracking key login_throttle_edd93d104f40dd3d06d34ef3ede96cc0 was locked out for exceeding maximum login attempts.
+[2026-07-26T22:29:14+00:00] [ALERT] [AUTH_FAILED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Invalid login attempt for email: admin@maxxsavage.com.
+[2026-07-26T22:29:18+00:00] [WARNING] [BRUTE_FORCE_BLOCKED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Active lockout enforced for email attempt: admin@maxxsavage.com. Remaining: 56 seconds.

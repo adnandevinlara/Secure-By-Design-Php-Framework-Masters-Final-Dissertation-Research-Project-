@@ -36,7 +36,7 @@ class Throttler
             Session::set($key . '_attempts', 0); 
             
             // 🚨 Log the brute-force lockout
-            \Core\Security\Logger::log('BRUTE_FORCE_LOCKOUT', "User tracking key $key was locked out for exceeding maximum login attempts.");
+            \Core\Security\Logger::log('WARNING', 'BRUTE_FORCE_LOCKOUT', "User tracking key $key was locked out for exceeding maximum login attempts.");
         }
     }
 

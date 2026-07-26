@@ -25,7 +25,9 @@
         </div>
         
         <div style="color: red; margin-bottom: 15px; text-align: center;">
-            <?= \Core\Http\Session::get('test_auth_status', ''); ?>
+            <!-- SECURE: Context-aware escaping prevents Reflected XSS -->
+            <?= htmlspecialchars(\Core\Http\Session::get('test_auth_status', '') ?? '', ENT_QUOTES, 'UTF-8'); ?>
+            <?php unset($_SESSION['test_auth_status']); ?>
         </div>
         
         <form action="/login" method="POST">
