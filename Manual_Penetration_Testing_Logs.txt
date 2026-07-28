@@ -1,3 +1,54 @@
+PS D:\projects\Final Dissertation Adnan Zaib\secure-php-framework> curl.exe -X POST http://localhost:8081/login.php -d "username=' OR '1'='1" -d "password=' OR '1'='1"
+<br />
+<b>Warning</b>:  Undefined array key "email" in <b>D:\projects\Adnan Zaib and friends 2\Final Dissertation Adnan Zaib\secure-php-framework\public\Version_A_Baseline\login.php</b> on line <b>15</b><br />
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Insecure App - Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 50px; background-color: #ffebee; }
+        .container { background: white; padding: 20px; border-radius: 8px; width: 300px; border: 2px solid red; }
+        input { width: 90%; padding: 8px; margin: 10px 0; }
+        button { width: 100%; padding: 10px; background: red; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Baseline Login</h2>
+    <p><em>Warning: Intentionally Vulnerable</em></p>
+    
+    <p style='color: red;'>Invalid credentials for email: </p>
+    <!-- INSECURE: Form lacks CSRF tokens and rate limiting -->
+    <form method="POST" action="">
+        <label>Email:</label>
+        <input type="text" name="email" required>
+        
+        <label>Password:</label>
+        <input type="password" name="password" required>
+        
+        <button type="submit">Login</button>
+    </form>
+    
+    <p><a href="register.php">Create an Account</a></p>
+</div>
+
+</body>
+</html>
+PS D:\projects\Final Dissertation Adnan Zaib\secure-php-framework> curl.exe -X POST http://localhost:8082/login -d "username=' OR '1'='1" -d "password=' OR '1'='1"
+Security Exception: CSRF Token Validation Failed. Request Blocked.
+PS D:\projects\Final Dissertation Adnan Zaib\secure-php-framework> 
+
+
+
+
+
+
+
+
+
+
 [2026-07-17 20:24:18] [CSRF_VIOLATION] [IP: 172.18.0.1] [User: Guest] Blocked a state-changing request due to a missing or invalid token.
 [2026-07-17 20:38:26] [RBAC_VIOLATION] [IP: 172.18.0.1] [User: Guest] A standard user attempted to access an admin-only route.
 [2026-07-17 20:39:01] [RBAC_VIOLATION] [IP: 172.18.0.1] [User: Guest] A standard user attempted to access an admin-only route.
