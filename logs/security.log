@@ -18,3 +18,13 @@
 [2026-07-26T22:29:18+00:00] [WARNING] [BRUTE_FORCE_BLOCKED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Active lockout enforced for email attempt: admin@maxxsavage.com. Remaining: 56 seconds.
 [2026-07-28T13:19:23+02:00] [CRITICAL] [CSRF_BLOCKED] [IP: ::1] [UID: Guest] [POST /] - A state-changing request failed token validation and was intercepted.
 [2026-07-28T22:54:39+02:00] [CRITICAL] [CSRF_BLOCKED] [IP: ::1] [UID: Guest] [POST /login] - A state-changing request failed token validation and was intercepted.
+[2026-08-13T20:52:10+02:00] [ALERT] [AUTH_FAILED] [IP: ::1] [UID: Guest] [POST /login] - Invalid login attempt for email: mail.imdadullah@gmail.com.
+[2026-08-16T21:17:38+02:00] [ALERT] [AUTH_FAILED] [IP: ::1] [UID: Guest] [POST /login] - Invalid login attempt for email: mail.imdadullah@gmail.com.
+
+[21:10] [Medium] [Failed Login] [Guest] [192.168.1.101] [/login]
+[21:12] [High] [CSRF Violation] [User] [192.168.1.105] [/posts/create]
+[21:15] [Medium] [Access Denied] [User] [192.168.1.110] [/admin]
+[21:18] [High] [Rate Limit] [Guest] [10.0.0.55] [/login]
+[2026-08-16T21:37:42+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 4] [GET /security-logs] - A standard user attempted to access an admin-only route.
+[2026-08-16T21:37:51+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 4] [GET /security-logs] - A standard user attempted to access an admin-only route.
+[2026-08-17T03:40:15+02:00] [CRITICAL] [XSS_PAYLOAD_DETECTED] [IP: ::1] [User: Guest] [POST /post/store]

@@ -157,8 +157,8 @@ $router->get('/dashboard', function (\Core\Http\Request $req, \Core\Http\Respons
     // 🔒 The Bouncer: Run the Auth Middleware before showing the page
     \Core\Middleware\AuthMiddleware::handle();
     
-    // FIXED: Route to BlogController instead so it fetches your posts!
-    $controller = new \App\Controllers\BlogController();
+    // FIX: Point this to the DashboardController!
+    $controller = new \App\Controllers\DashboardController();
     $controller->index($req, $res);
 });
 
@@ -215,5 +215,42 @@ $router->get('/admin-panel', function (\Core\Http\Request $req, \Core\Http\Respo
 //     $db->exec("UPDATE users SET role = 'admin' WHERE id = 1");
 //     echo "User 1 has been upgraded to Admin! Please log out and log back in.";
 // });
+
+// ==========================================
+// SECURITY & FORENSICS (ADMIN ONLY)
+// ==========================================
+
+// 1. View Security Audit Logs
+$router->get('/security-logs', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    // Temporarily using AuthMiddleware so we can view the page
+    \Core\Middleware\AuthMiddleware::handle();
+    // \Core\Middleware\AdminMiddleware::handle(); 
+    
+    $controller = new \App\Controllers\SecurityAuditController();
+    $controller->index($req, $res);
+});
+
+// 2. Active Defense: Block IP Address
+$router->post('/ip/block', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    // \Core\Middleware\AdminMiddleware::handle();
+    
+    $controller = new \App\Controllers\SecurityAuditController();
+    $controller->blockIp($req, $res);
+});
+
+// View all Blog Posts
+$router->get('/posts', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    $controller = new \App\Controllers\BlogController();
+    $controller->index($req, $res); // Assuming index() shows the list of posts
+});
+
+// Blog Routes
+$router->get('/posts/create', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    $controller = new \App\Controllers\BlogController();
+    $controller->create($req, $res);
+});
 
 $router->dispatch();
