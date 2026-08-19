@@ -57,15 +57,19 @@
                 </div>
 
                 <div class="d-flex align-items-center">
-                    <!-- User Dropdown & Role -->
+                    <!-- User Dropdown & Dynamic Role -->
                     <div class="dropdown d-inline-block me-3">
-                        <span class="badge bg-primary font-size-12">Role: <?= htmlspecialchars($_SESSION['user']['role'] ?? 'Administrator') ?></span>
+                        <span class="badge bg-primary font-size-12">Role: <?= htmlspecialchars($_SESSION['user']['role'] ?? 'Guest') ?></span>
                     </div>
 
                     <div class="dropdown d-inline-block">
                         <button aria-expanded="false" aria-haspopup="true" class="btn header-item waves-effect" data-bs-toggle="dropdown" id="page-header-user-dropdown" type="button">
-                            <img alt="Header Avatar" class="rounded-circle header-profile-user" src="/assets/images/users/avatar-1.jpg"/>
-                            <span class="d-none d-xl-inline-block ms-1"><?= htmlspecialchars($_SESSION['user']['username'] ?? 'Admin User') ?></span>
+                            <div class="avatar-xs d-inline-block me-1 align-middle">
+                                <span class="avatar-title rounded-circle bg-primary text-white font-size-16 shadow-sm">
+                                    <?= strtoupper(substr(htmlspecialchars($_SESSION['user']['username'] ?? 'U'), 0, 1)) ?>
+                                </span>
+                            </div>
+                            <span class="d-none d-xl-inline-block ms-1 fw-medium"><?= htmlspecialchars($_SESSION['user']['username'] ?? 'Guest') ?></span>
                             <i class="mdi mdi-chevron-down d-none d-xl-inline-block"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
@@ -116,21 +120,26 @@
                             </a>
                         </li>
 
-                        <li>
-                            <a class="waves-effect" href="/users">
-                                <i class="bx bx-user-check"></i>
-                                <span>Manage Users</span>
-                            </a>
-                        </li>
+                        <!-- Only show these tabs to Administrators -->
+                        <?php if (isset($_SESSION['user']['role']) && in_array(strtolower($_SESSION['user']['role']), ['admin', 'administrator'])): ?>
+                            
+                            <li>
+                                <a class="waves-effect" href="/users">
+                                    <i class="bx bx-user-check"></i>
+                                    <span>Manage Users</span>
+                                </a>
+                            </li>
 
-                        <li class="menu-title">Security & Forensics</li>
+                            <li class="menu-title">Security & Forensics</li>
 
-                        <li>
-                            <a class="waves-effect text-warning" href="/security-logs">
-                                <i class="bx bx-shield-quarter text-warning"></i>
-                                <span class="text-warning">Security Audit Logs</span>
-                            </a>
-                        </li>
+                            <li>
+                                <a class="waves-effect text-warning" href="/security-logs">
+                                    <i class="bx bx-shield-quarter text-warning"></i>
+                                    <span class="text-warning">Security Audit Logs</span>
+                                </a>
+                            </li>
+
+                        <?php endif; ?>
                     </ul>
                 </div>
             </div>

@@ -22,7 +22,7 @@ class Connection
                 self::$instance->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 self::$instance->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
                 
-                // Automatically create the users table if it doesn't exist yet
+                // Automatically create the users table
                 self::$instance->exec("CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT NOT NULL,
@@ -31,6 +31,32 @@ class Connection
                     role TEXT DEFAULT 'user',
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
+
+                // Automatically create the categories table
+                self::$instance->exec("CREATE TABLE IF NOT EXISTS categories (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )");
+
+                // Automatically create the comments table
+                self::$instance->exec("CREATE TABLE IF NOT EXISTS comments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    author TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )");
+
+                // Automatically create the posts table (with category_id included!)
+                self::$instance->exec("CREATE TABLE IF NOT EXISTS posts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    author_id INTEGER NOT NULL,
+                    category_id INTEGER NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )");
+
             } catch (PDOException $e) {
                 die("Security Exception: Database Connection failed. " . $e->getMessage());
             }

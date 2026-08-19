@@ -54,8 +54,8 @@ class AuthController extends Controller
         $isCreated = \App\Models\User::create($username, $email, $hashedPassword);
         
         if ($isCreated) {
-            \Core\Http\Session::set('test_auth_status', "Success! $username was securely registered and saved to the database.");
-            header("Location: /dashboard");
+            \Core\Http\Session::set('test_auth_status', "Success! $username was securely registered. Please log in.");
+            header("Location: /login");
         } else {
             \Core\Http\Session::set('test_auth_status', "Error: Could not register user. Email may already be in use.");
             header("Location: /register");
@@ -106,13 +106,21 @@ class AuthController extends Controller
         if ($user && password_verify($password, $user['password'])) {
             
             \Core\Security\Throttler::clear($throttleKey);
-            session_regenerate_id(true);
+            session_regenerate_id(true); 
             
+            // 1. Set the raw session keys required by the AuthMiddleware
             \Core\Http\Session::set('user_id', $user['id']);
-            \Core\Http\Session::set('role', $user['role']); // Save the RBAC role
+            \Core\Http\Session::set('role', $user['role']);
+            
+            // 2. Set the grouped array required by the Profile & Dashboard UI
+            $_SESSION['user'] = [
+                'id' => $user['id'],
+                'username' => $user['username'],
+                'email' => $user['email'],
+                'role' => $user['role']
+            ];
             
             \Core\Http\Session::set('test_auth_status', "Success! Securely logged in as " . $user['username']);
-            
             header("Location: /dashboard");
             exit;
         }
@@ -131,7 +139,22 @@ class AuthController extends Controller
     // Securely logs the user out and destroys the session
     public function logout(Request $req, Response $res): void
     {
-        \Core\Http\Session::destroy();
+        // 1. Empty the session array from memory
+        $_SESSION = [];
+
+        // 2. Destroy the session cookie in the user's browser (ASVS V3 Compliant)
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000,
+                $params["path"], $params["domain"],
+                $params["secure"], $params["httponly"]
+            );
+        }
+
+        // 3. Destroy the session file on the server
+        session_destroy();
+
+        // 4. Redirect safely to the login page
         header("Location: /login");
         exit;
     }

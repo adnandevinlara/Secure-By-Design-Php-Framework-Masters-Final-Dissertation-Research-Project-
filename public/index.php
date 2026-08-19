@@ -253,4 +253,87 @@ $router->get('/posts/create', function (\Core\Http\Request $req, \Core\Http\Resp
     $controller->create($req, $res);
 });
 
+// Manage Users 
+// $router->get('/users', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+//     // Temporarily use AuthMiddleware so you can view the page!
+//     \Core\Middleware\AuthMiddleware::handle();
+//     // \Core\Middleware\AdminMiddleware::handle();
+    
+//     $controller = new \App\Controllers\UserController();
+//     $controller->index($req, $res);
+// });
+
+// Manage Users (Strictly Admin Only)
+$router->get('/users', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    // 🔒 Strict RBAC Enforced!
+    \Core\Middleware\AdminMiddleware::handle(); 
+    
+    $controller = new \App\Controllers\UserController();
+    $controller->index($req, $res);
+});
+
+// Delete a User
+$router->post('/users/delete', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    
+    $controller = new \App\Controllers\UserController();
+    $controller->delete($req, $res);
+});
+
+// Categories Management
+$router->get('/categories', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\CategoryController();
+    $controller->index($req, $res);
+});
+
+$router->post('/categories/store', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\CategoryController();
+    $controller->store($req, $res);
+});
+
+// Comments Management & Simulation
+$router->get('/comments', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\CommentController();
+    $controller->index($req, $res);
+});
+
+$router->post('/comments/store', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\CommentController();
+    $controller->store($req, $res);
+});
+
+// User Profile
+$router->get('/profile', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\ProfileController();
+    $controller->index($req, $res);
+});
+
+// Secure Logout
+$router->post('/logout', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    // Assuming you have an AuthController. If not, you can route this to UserController.
+    $controller = new \App\Controllers\AuthController(); 
+    $controller->logout($req, $res);
+});
+
+// Show the Create Post Form
+$router->get('/post/create', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\BlogController();
+    $controller->create($req, $res);
+});
+
+// Process the New Post (Securely)
+$router->post('/post/store', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\BlogController();
+    $controller->store($req, $res);
+});
+
+
+
 $router->dispatch();

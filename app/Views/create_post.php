@@ -63,6 +63,22 @@
                         </div>
                     </div>
 
+                    <!-- NEW: Category Dropdown -->
+                    <div class="mb-3">
+                        <label for="category_id" class="form-label fw-bold">Category</label>
+                        <select class="form-select" id="category_id" name="category_id" required>
+                            <option value="" selected disabled>Select a category...</option>
+                            <?php if (!empty($categories)): ?>
+                                <?php foreach ($categories as $cat): ?>
+                                    <option value="<?= htmlspecialchars($cat['id']) ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select a category for this post.
+                        </div>
+                    </div>
+
                     <div class="mb-4">
                         <label for="content" class="form-label fw-bold">Post Content</label>
                         <textarea class="form-control" id="content" name="content" rows="6" required minlength="10" placeholder="Write your content here..."></textarea>
