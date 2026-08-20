@@ -44,3 +44,8 @@
 [2026-08-18T03:55:44+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 6] [GET /users] - A standard user attempted to access an admin-only route.
 [2026-08-19T01:14:46+02:00] [CRITICAL] [XSS_PAYLOAD_DETECTED] [IP: ::1] [User: Imdad] [POST /categories/store]
 [2026-08-19T01:14:55+02:00] [CRITICAL] [XSS_PAYLOAD_DETECTED] [IP: ::1] [User: Imdad] [POST /post/store]
+[2026-08-20T21:28:24+02:00] [ALERT] [AUTH_FAILED] [IP: ::1] [UID: Guest] [POST /login] - Invalid login attempt for email: imdad2@gmail.com.
+[2026-08-20T21:28:41+02:00] [ALERT] [AUTH_FAILED] [IP: ::1] [UID: Guest] [POST /login] - Invalid login attempt for email: mail.imdadullah@gmail.com.
+[2026-08-20T21:32:25+02:00] [ALERT] [AUTH_FAILED] [IP: ::1] [UID: Guest] [POST /login] - Invalid login attempt for email: mail.imdadullah@gmail.com.
+[2026-08-20T21:32:44+02:00] [ALERT] [AUTH_FAILED] [IP: ::1] [UID: Guest] [POST /login] - Invalid login attempt for email: mail.imdadullah@gmail.com.
+[2026-08-20T21:42:14+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 7] [GET /admin-panel] - A standard user attempted to access an admin-only route.

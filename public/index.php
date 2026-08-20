@@ -334,6 +334,12 @@ $router->post('/post/store', function (\Core\Http\Request $req, \Core\Http\Respo
     $controller->store($req, $res);
 });
 
-
+// // TEMPORARY ADMIN ELEVATION ROUTE
+// $router->get('/make-admin', function () {
+//     $db = \Core\Database\Connection::getInstance();
+//     $db->exec("UPDATE users SET role = 'admin' WHERE email = 'superadmin@gmail.com'");
+//     echo "<h2 style='color: green; padding: 20px;'>Success! The account is now an Admin.</h2>";
+//     echo "<p>Please delete this route from index.php immediately for security.</p>";
+// });
 
 $router->dispatch();
