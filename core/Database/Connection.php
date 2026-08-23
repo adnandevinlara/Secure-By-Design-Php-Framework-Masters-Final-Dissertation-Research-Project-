@@ -39,22 +39,37 @@ class Connection
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
 
-                // Automatically create the comments table
+                // self::$instance->exec("DROP TABLE IF EXISTS comments");
+
+                // Automatically create the updated comments table (with Adnan's new fields)
                 self::$instance->exec("CREATE TABLE IF NOT EXISTS comments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    post_id INTEGER NOT NULL,
+                    author_id INTEGER NOT NULL,
                     author TEXT NOT NULL,
                     content TEXT NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    is_replied INTEGER DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
 
-                // Automatically create the posts table (with category_id included!)
+                // 3. Create the POSTS table for the CMS
                 self::$instance->exec("CREATE TABLE IF NOT EXISTS posts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT NOT NULL,
+                    category_id INTEGER NULL,
                     content TEXT NOT NULL,
                     author_id INTEGER NOT NULL,
-                    category_id INTEGER NOT NULL,
+                    status TEXT DEFAULT 'published',
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )");
+
+                // 4. Create the PASSWORD RESETS table for OTPs
+                self::$instance->exec("CREATE TABLE IF NOT EXISTS password_resets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT NOT NULL,
+                    otp TEXT NOT NULL,
+                    expires_at DATETIME NOT NULL
                 )");
 
             } catch (PDOException $e) {

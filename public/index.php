@@ -6,6 +6,7 @@ use Core\Http\Router;
 use Core\Http\Request;
 use Core\Http\Response;
 
+
 // Boot the secure session manager
 \Core\Http\Session::start();
 
@@ -25,10 +26,20 @@ $router = new \Core\Http\Router($request, $response);
 // Enforce CSRF token validation on all state-changing requests
 \Core\Middleware\CsrfMiddleware::handle();
 
-// 3. Define our test routes (Notice they now use $req and $res)
-$router->get('/', function (Request $req, Response $res) {
-    // We are now safely outputting HTML through our Response handler!
-    $res->html("<h1>Welcome to the Secure-by-Design Framework</h1><p>The core routing engine is now successfully using the Request and Response classes.</p>");
+// Public Frontend Routes
+$router->get('/', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\HomeController();
+    $controller->index($req, $res);
+});
+
+$router->get('/search', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\HomeController();
+    $controller->search($req, $res);
+});
+
+$router->get('/post/view', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\HomeController();
+    $controller->show($req, $res);
 });
 
 $router->get('/api/status', function (Request $req, Response $res) {
@@ -333,6 +344,65 @@ $router->post('/post/store', function (\Core\Http\Request $req, \Core\Http\Respo
     $controller = new \App\Controllers\BlogController();
     $controller->store($req, $res);
 });
+
+$router->post('/comments/status', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\CommentController();
+    $controller->updateStatus($req, $res);
+});
+
+$router->post('/comments/delete', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\CommentController();
+    $controller->delete($req, $res);
+});
+
+$router->post('/post/status', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\BlogController();
+    $controller->updateStatus($req, $res);
+});
+
+$router->post('/post/delete', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\BlogController();
+    $controller->delete($req, $res);
+});
+
+$router->get('/post/edit', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\BlogController();
+    $controller->edit($req, $res);
+});
+
+$router->post('/post/update', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\BlogController();
+    $controller->update($req, $res);
+});
+
+// Forgot Password Routes
+$router->get('/forgot-password', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\AuthController();
+    $controller->showForgotPassword($req, $res);
+});
+
+$router->get('/reset-password', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\AuthController();
+    $controller->showResetPassword($req, $res);
+});
+
+$router->post('/forgot-password/send', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\AuthController();
+    $controller->processForgotPassword($req, $res);
+});
+
+
+$router->post('/reset-password/process', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    $controller = new \App\Controllers\AuthController();
+    $controller->processResetPassword($req, $res);
+});
+
 
 // // TEMPORARY ADMIN ELEVATION ROUTE
 // $router->get('/make-admin', function () {

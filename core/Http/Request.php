@@ -22,7 +22,10 @@ class Request
 
     public function getUri(): string
     {
-        $uri = $this->server['REQUEST_URI'] ?? '/';
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        
+        // SECURE: Parse the URL to extract ONLY the path, ignoring query parameters
+        // This ensures /post/view?id=1 is routed simply as /post/view
         return parse_url($uri, PHP_URL_PATH);
     }
 

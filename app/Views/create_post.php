@@ -2,13 +2,16 @@
 
 <div class="row">
     <div class="col-12">
-        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between mb-4">
             <h4 class="mb-sm-0 font-size-18 text-primary"><i class="bx bx-edit me-1"></i> Create New Blog Post</h4>
+            <div class="page-title-right">
+                <a href="/posts" class="btn btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i> Back to Posts</a>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Security Matrix Accordion -->
+<!-- Security Matrix Accordion (Kept for Master's Evaluation) -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="accordion shadow-sm" id="securityAccordion">
@@ -38,7 +41,7 @@
 </div>
 
 <div class="row">
-    <div class="col-xl-8 mx-auto">
+    <div class="col-xl-10 mx-auto">
         
         <!-- Alerts for the Trap -->
         <?php if (isset($_SESSION['error'])): ?>
@@ -49,47 +52,55 @@
             <?php unset($_SESSION['error']); ?>
         <?php endif; ?>
 
-        <div class="card shadow-sm">
-            <div class="card-body">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
                 <!-- 'needs-validation' triggers Bootstrap's client-side checks -->
                 <form method="POST" action="/post/store" class="needs-validation" novalidate>
                     <?= \Core\Security\Csrf::getFormField() ?? '<input type="hidden" name="csrf_token" value="test">' ?>
                     
-                    <div class="mb-3">
-                        <label for="title" class="form-label fw-bold">Post Title</label>
-                        <input type="text" class="form-control" id="title" name="title" required minlength="5" placeholder="Enter an engaging title...">
-                        <div class="invalid-feedback">
-                            Title is required and must be at least 5 characters long. (Client-Side Validation)
+                    <div class="row">
+                        <!-- Post Title -->
+                        <div class="col-md-12 mb-3">
+                            <label for="title" class="form-label fw-bold">Post Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-lg" id="title" name="title" required minlength="5" placeholder="Enter an engaging title...">
+                            <div class="invalid-feedback">Title is required and must be at least 5 characters long.</div>
+                        </div>
+
+                        <!-- Category Dropdown -->
+                        <div class="col-md-6 mb-3">
+                            <label for="category_id" class="form-label fw-bold">Category</label>
+                            <select class="form-select" id="category_id" name="category_id" required>
+                                <option value="" selected disabled>Select a category...</option>
+                                <?php if (!empty($categories)): ?>
+                                    <?php foreach ($categories as $cat): ?>
+                                        <option value="<?= htmlspecialchars($cat['id']) ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                            <div class="invalid-feedback">Please select a category for this post.</div>
+                        </div>
+
+                        <!-- NEW: Status Show/Hide Dropdown -->
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label fw-bold">Status <span class="text-danger">*</span></label>
+                            <select name="status" id="status" class="form-select" required>
+                                <option value="published">Show (Publish to public blog)</option>
+                                <option value="hidden">Hide (Save as draft / Hidden)</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a visibility status.</div>
                         </div>
                     </div>
 
-                    <!-- NEW: Category Dropdown -->
-                    <div class="mb-3">
-                        <label for="category_id" class="form-label fw-bold">Category</label>
-                        <select class="form-select" id="category_id" name="category_id" required>
-                            <option value="" selected disabled>Select a category...</option>
-                            <?php if (!empty($categories)): ?>
-                                <?php foreach ($categories as $cat): ?>
-                                    <option value="<?= htmlspecialchars($cat['id']) ?>"><?= htmlspecialchars($cat['name']) ?></option>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </select>
-                        <div class="invalid-feedback">
-                            Please select a category for this post.
-                        </div>
-                    </div>
-
+                    <!-- Post Content with template 'note-editor' class -->
                     <div class="mb-4">
-                        <label for="content" class="form-label fw-bold">Post Content</label>
-                        <textarea class="form-control" id="content" name="content" rows="6" required minlength="10" placeholder="Write your content here..."></textarea>
-                        <div class="invalid-feedback">
-                            Content is required and must be at least 10 characters long. (Client-Side Validation)
-                        </div>
+                        <label for="content" class="form-label fw-bold">Post Content <span class="text-danger">*</span></label>
+                        <textarea class="form-control note-editor" id="content" name="content" rows="12" required minlength="10" placeholder="Write your content here..."></textarea>
+                        <div class="invalid-feedback">Content is required and must be at least 10 characters long.</div>
                     </div>
 
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center mt-4">
                         <button type="button" class="btn btn-outline-danger" onclick="testTrap()"><i class="bx bx-bug me-1"></i> Test XSS Trap</button>
-                        <button type="submit" class="btn btn-primary"><i class="bx bx-send me-1"></i> Publish Securely</button>
+                        <button type="submit" class="btn btn-primary btn-lg px-4"><i class="bx bx-send me-1"></i> Publish Securely</button>
                     </div>
                 </form>
             </div>

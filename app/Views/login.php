@@ -39,10 +39,16 @@
                 <input type="email" id="email" name="email" required>
             </div>
             
-            <div class="form-group">
+            <!-- <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
+            </div> -->
+
+            <div class="d-flex justify-content-between">
+                <label class="form-label fw-bold">Password</label>
+                <a href="/forgot-password" class="text-decoration-none text-primary small">Forgot password?</a>
             </div>
+            <input type="password" name="password" class="form-control" required>
             
             <button type="submit">Log In</button>
         </form>

@@ -1,60 +1,80 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Registration - PHP Framework</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 40px; max-width: 500px; margin: auto; background-color: #f4f7f6; }
-        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        input[type="text"], input[type="email"], input[type="password"] {
-            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
-        }
-        button { padding: 12px; background: #0056b3; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
-        button:hover { background: #004494; }
-        .security-badge { background: #e2f0d9; color: #2e7d32; padding: 10px; text-align: center; margin-bottom: 20px; font-size: 12px; border-radius: 4px; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>Register User</h2>
-        <div class="security-badge">
-            🔒 Protected by CSRF Middleware & Argon2id Hashing
-        </div>
+<?php ob_start(); ?>
 
-        <div style="color: red; margin-bottom: 15px; text-align: center;">
-            <!-- SECURE: Context-aware escaping prevents Reflected XSS -->
-            <?= htmlspecialchars(\Core\Http\Session::get('test_auth_status', '') ?? '', ENT_QUOTES, 'UTF-8'); ?>
-            <?php unset($_SESSION['test_auth_status']); ?>
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <h4 class="fw-bold text-primary"><i class="bx bx-user-plus me-2"></i>Create an Account</h4>
+                    <p class="text-muted">Join the Secure CMS platform.</p>
+                </div>
+                
+                <!-- Display Error Messages -->
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert alert-danger shadow-sm border-0"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+                <?php endif; ?>
+                <?php if (isset($_SESSION['test_auth_status'])): ?>
+                    <div class="alert alert-danger shadow-sm border-0"><?= $_SESSION['test_auth_status']; unset($_SESSION['test_auth_status']); ?></div>
+                <?php endif; ?>
+
+                <form action="/register" method="POST" class="needs-validation" novalidate>
+                    <?= \Core\Security\Csrf::getFormField() ?? '' ?>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Username <span class="text-danger">*</span></label>
+                        <input type="text" name="username" class="form-control form-control-lg" required minlength="3" placeholder="Choose a username">
+                        <div class="invalid-feedback">Username is required.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email Address <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control form-control-lg" required placeholder="name@example.com">
+                        <div class="invalid-feedback">Please enter a valid email address.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Secure Password <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control form-control-lg" required placeholder="Minimum 8 chars, 1 uppercase, 1 number">
+                        <div class="invalid-feedback">Password is required.</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Confirm Password <span class="text-danger">*</span></label>
+                        <input type="password" name="password_confirm" class="form-control form-control-lg" required placeholder="Confirm your password">
+                        <div class="invalid-feedback">Please confirm your password.</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Create Account Securely</button>
+                    </div>
+                </form>
+                
+                <div class="mt-4 text-center">
+                    <span class="text-muted">Already have an account?</span> 
+                    <a href="/login" class="text-primary fw-bold text-decoration-none">Log In here</a>
+                </div>
+            </div>
         </div>
-        
-        <form action="/register" method="POST">
-            <!-- CRITICAL: Injecting the CSRF Token -->
-            <?= \Core\Security\Csrf::getFormField(); ?>
-            
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="password">Secure Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            
-            <button type="submit">Create Account Securely</button>
-        </form>
-        
-        <p style="text-align: center; margin-top: 20px;">
-            <a href="/login" style="color: #666; text-decoration: none;">Already have an account? Login here</a>
-        </p>
     </div>
-</body>
-</html>
+</div>
+
+<script>
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })();
+</script>
+
+<?php 
+$content = ob_get_clean(); 
+require 'layouts/main.php'; 
+?>

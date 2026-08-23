@@ -1,6 +1,6 @@
 <?php ob_start(); ?>
 
-
+<!-- Security Matrix Banner -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="accordion shadow-sm" id="securityAccordion">
@@ -29,7 +29,6 @@
     </div>
 </div>
 
-
 <!-- Start Page Title -->
 <div class="row">
     <div class="col-12">
@@ -43,7 +42,7 @@
 <!-- Stats Row -->
 <div class="row">
     <div class="col-xl-3 col-md-6">
-        <div class="card mini-stats-wid">
+        <div class="card mini-stats-wid shadow-sm">
             <div class="card-body">
                 <div class="d-flex">
                     <div class="flex-grow-1">
@@ -52,9 +51,7 @@
                     </div>
                     <div class="flex-shrink-0 align-self-center">
                         <div class="mini-stat-icon avatar-sm rounded-circle bg-primary">
-                            <span class="avatar-title">
-                                <i class="bx bx-group font-size-24"></i>
-                            </span>
+                            <span class="avatar-title"><i class="bx bx-group font-size-24"></i></span>
                         </div>
                     </div>
                 </div>
@@ -62,7 +59,7 @@
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card mini-stats-wid">
+        <div class="card mini-stats-wid shadow-sm">
             <div class="card-body">
                 <div class="d-flex">
                     <div class="flex-grow-1">
@@ -71,9 +68,7 @@
                     </div>
                     <div class="flex-shrink-0 align-self-center">
                         <div class="avatar-sm rounded-circle bg-success mini-stat-icon">
-                            <span class="avatar-title rounded-circle bg-success">
-                                <i class="bx bx-file font-size-24"></i>
-                            </span>
+                            <span class="avatar-title rounded-circle bg-success"><i class="bx bx-file font-size-24"></i></span>
                         </div>
                     </div>
                 </div>
@@ -81,7 +76,7 @@
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card mini-stats-wid">
+        <div class="card mini-stats-wid shadow-sm">
             <div class="card-body">
                 <div class="d-flex">
                     <div class="flex-grow-1">
@@ -90,9 +85,7 @@
                     </div>
                     <div class="flex-shrink-0 align-self-center">
                         <div class="avatar-sm rounded-circle bg-info mini-stat-icon">
-                            <span class="avatar-title rounded-circle bg-info">
-                                <i class="bx bx-chat font-size-24"></i>
-                            </span>
+                            <span class="avatar-title rounded-circle bg-info"><i class="bx bx-chat font-size-24"></i></span>
                         </div>
                     </div>
                 </div>
@@ -100,18 +93,16 @@
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
-        <div class="card mini-stats-wid border-danger border border-1">
+        <div class="card mini-stats-wid border-danger border border-1 shadow-sm">
             <div class="card-body">
                 <div class="d-flex">
                     <div class="flex-grow-1">
                         <p class="text-muted fw-medium">Security Alerts</p>
-                        <h4 class="mb-0 text-danger">Active</h4>
+                        <h4 class="mb-0 text-danger"><?= $stats['total_alerts'] ?? 0 ?></h4>
                     </div>
                     <div class="flex-shrink-0 align-self-center">
                         <div class="avatar-sm rounded-circle bg-danger mini-stat-icon">
-                            <span class="avatar-title rounded-circle bg-danger">
-                                <i class="bx bx-shield-quarter font-size-24"></i>
-                            </span>
+                            <span class="avatar-title rounded-circle bg-danger"><i class="bx bx-shield-quarter font-size-24"></i></span>
                         </div>
                     </div>
                 </div>
@@ -120,52 +111,75 @@
     </div>
 </div>
 
+<!-- Recent Activity Row -->
 <div class="row">
-    <!-- Quick Draft Form -->
-    <div class="col-xl-5">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="card-title mb-4"><i class="bx bx-pencil me-1"></i> Quick Draft</h4>
-                <form method="POST" action="/post/store">
-                    <?= \Core\Security\Csrf::getFormField(); ?>
-                    <div class="mb-3">
-                        <input type="text" name="title" class="form-control" required placeholder="Post Title">
-                    </div>
-                    <div class="mb-3">
-                        <textarea name="content" rows="4" class="form-control" required placeholder="What's on your mind?"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Publish Securely</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Recent Posts Feed -->
-    <div class="col-xl-7">
-        <div class="card">
+    <div class="col-xl-4 col-lg-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
             <div class="card-body">
-                <h4 class="card-title mb-4"><i class="bx bx-list-ul me-1"></i> Recent Posts</h4>
+                <h5 class="card-title mb-4"><i class="bx bx-list-ul me-1"></i> Recent Posts</h5>
                 <div class="table-responsive">
                     <table class="table align-middle table-nowrap mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="align-middle">Title</th>
-                                <th class="align-middle">Content Snippet</th>
-                            </tr>
-                        </thead>
                         <tbody>
                             <?php if (!empty($posts)): ?>
                                 <?php foreach ($posts as $post): ?>
                                     <tr>
                                         <!-- SECURE: Neutralizing Stored XSS Payloads on output -->
-                                        <td class="fw-medium"><?= htmlspecialchars($post['title'] ?? 'Untitled', ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td><span class="text-muted"><?= htmlspecialchars(substr($post['content'] ?? '', 0, 50), ENT_QUOTES, 'UTF-8') ?>...</span></td>
+                                        <td class="fw-medium text-truncate" style="max-width: 150px;"><?= htmlspecialchars($post['title'] ?? 'Untitled', ENT_QUOTES, 'UTF-8') ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <tr>
-                                    <td colspan="2" class="text-center text-muted py-4">No recent posts found.</td>
-                                </tr>
+                                <tr><td class="text-center text-muted py-3">No recent posts.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Comments Feed -->
+    <div class="col-xl-4 col-lg-6 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title mb-4"><i class="bx bx-comment-detail me-1"></i> Recent Comments</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle table-nowrap mb-0">
+                        <tbody>
+                            <?php if (!empty($recent_comments)): ?>
+                                <?php foreach ($recent_comments as $comment): ?>
+                                    <tr>
+                                        <td class="fw-medium text-truncate" style="max-width: 150px;"><?= htmlspecialchars($comment['content'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td class="text-muted font-size-12"><?= htmlspecialchars($comment['author'] ?? 'Anonymous', ENT_QUOTES, 'UTF-8') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td class="text-center text-muted py-3" colspan="2">No recent comments.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Security Events Feed -->
+    <div class="col-xl-4 col-lg-12 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title text-danger mb-4"><i class="bx bx-shield me-1"></i> Security Events</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle table-nowrap mb-0">
+                        <tbody>
+                            <?php if (!empty($recent_logs)): ?>
+                                <?php foreach ($recent_logs as $log): ?>
+                                    <tr>
+                                        <td class="fw-medium text-danger text-truncate" style="max-width: 150px;"><?= htmlspecialchars($log['event_type'] ?? 'Unknown', ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td class="text-muted font-size-12"><?= htmlspecialchars($log['ip_address'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr><td class="text-center text-muted py-3" colspan="2">No recent security events.</td></tr>
                             <?php endif; ?>
                         </tbody>
                     </table>

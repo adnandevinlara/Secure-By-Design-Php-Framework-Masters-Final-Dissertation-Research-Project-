@@ -5,108 +5,231 @@ namespace App\Controllers;
 use Core\Http\Controller;
 use Core\Http\Request;
 use Core\Http\Response;
+use Core\Database\Connection;
 
 class BlogController extends Controller
 {
-    // Show all Blog Posts in the Management Table
+    // 1. Show the Blog Posts Management Dashboard
     public function index(Request $req, Response $res): void
     {
-        $db = \Core\Database\Connection::getInstance();
+        $db = Connection::getInstance();
+        $userId = $_SESSION['user']['id'] ?? 0;
+        $isAdmin = ($_SESSION['user']['role'] ?? 'user') === 'admin';
+
+        $categories = [];
+        try {
+            $categories = $db->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
+        } catch (\PDOException $e) {}
+
+        // RBAC: Admins see everything. Users see only their own posts.
+        $query = "
+            SELECT p.*, c.name AS category_name 
+            FROM posts p 
+            LEFT JOIN categories c ON p.category_id = c.id 
+            WHERE 1=1
+        ";
         
-        // Use a LEFT JOIN to pull the category name alongside the post data
-        $stmt = $db->query("
-            SELECT posts.*, categories.name AS category_name 
-            FROM posts 
-            LEFT JOIN categories ON posts.category_id = categories.id 
-            ORDER BY posts.id DESC
-        ");
+        $params = [];
+
+        if (!$isAdmin) {
+            $query .= " AND p.author_id = :user_id";
+            $params[':user_id'] = $userId;
+        }
+
+        // Apply Search Filters
+        $title = $_GET['title'] ?? '';
+        $category_id = $_GET['category_id'] ?? '';
+        $status = $_GET['status'] ?? '';
+        
+        if (!empty($title)) {
+            $query .= " AND p.title LIKE :title";
+            $params[':title'] = "%$title%";
+        }
+        if (!empty($category_id)) {
+            $query .= " AND p.category_id = :category_id";
+            $params[':category_id'] = $category_id;
+        }
+        if (!empty($status)) {
+            $query .= " AND p.status = :status";
+            $params[':status'] = $status;
+        }
+
+        $query .= " ORDER BY p.created_at DESC";
+
+        $stmt = $db->prepare($query);
+        $stmt->execute($params);
         $posts = $stmt->fetchAll();
 
         $html = $this->view->render('posts', [
-            'title' => 'Secure CMS | Blog Posts Management',
-            'posts' => $posts
+            'title' => 'Blog Posts Management',
+            'posts' => $posts,
+            'categories' => $categories,
+            'filters' => [
+                'title' => $title,
+                'category_id' => $category_id,
+                'status' => $status
+            ]
         ]);
         $res->html($html);
     }
 
-    // 1. Show the Create Post Form
-    public function create(Request $req, Response $res): void
+    // 2. Update Status (Publish/Hide)
+    public function updateStatus(Request $req, Response $res): void
     {
-        // Fetch categories from the database for the dropdown
-        $db = \Core\Database\Connection::getInstance();
-        $stmt = $db->query("SELECT id, name FROM categories ORDER BY name ASC");
-        $categories = $stmt->fetchAll();
+        $postId = $_POST['post_id'] ?? 0;
+        $newStatus = $_POST['status'] ?? 'published';
+        $userId = $_SESSION['user']['id'] ?? 0;
+        $isAdmin = ($_SESSION['user']['role'] ?? 'user') === 'admin';
+
+        $db = Connection::getInstance();
+        
+        // RBAC Check
+        if ($isAdmin) {
+            $stmt = $db->prepare("UPDATE posts SET status = :status WHERE id = :post_id");
+            $stmt->execute([':status' => $newStatus, ':post_id' => $postId]);
+        } else {
+            $stmt = $db->prepare("UPDATE posts SET status = :status WHERE id = :post_id AND author_id = :user_id");
+            $stmt->execute([':status' => $newStatus, ':post_id' => $postId, ':user_id' => $userId]);
+        }
+
+        $_SESSION['success'] = "Post status updated to " . ucfirst($newStatus) . "!";
+        header("Location: /posts");
+        exit;
+    }
+
+    // 3. Delete a post
+    public function delete(Request $req, Response $res): void
+    {
+        $postId = $_POST['post_id'] ?? 0;
+        $userId = $_SESSION['user']['id'] ?? 0;
+        $isAdmin = ($_SESSION['user']['role'] ?? 'user') === 'admin';
+
+        $db = Connection::getInstance();
+        
+        // RBAC Check
+        if ($isAdmin) {
+            $stmt = $db->prepare("DELETE FROM posts WHERE id = :post_id");
+            $stmt->execute([':post_id' => $postId]);
+        } else {
+            $stmt = $db->prepare("DELETE FROM posts WHERE id = :post_id AND author_id = :user_id");
+            $stmt->execute([':post_id' => $postId, ':user_id' => $userId]);
+        }
+
+        $_SESSION['success'] = "Post permanently deleted.";
+        header("Location: /posts");
+        exit;
+    }
+
+    // 4. Show Create Post Form
+    public function create(Request $req, Response $res): void 
+    {
+        $db = Connection::getInstance();
+        $categories = [];
+        try {
+            $categories = $db->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
+        } catch (\PDOException $e) {}
 
         $html = $this->view->render('create_post', [
-            'title' => 'Secure CMS | Create Post',
-            'categories' => $categories // Pass them to the view
+            'title' => 'Create New Post',
+            'categories' => $categories
         ]);
         $res->html($html);
     }
 
-    // 2. Handle the Submission (The Insecure Code Trap)
-    public function store(Request $req, Response $res): void
+    // 5. Process New Post
+    public function store(Request $req, Response $res): void 
     {
         $title = trim($_POST['title'] ?? '');
+        $categoryId = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
+        $status = $_POST['status'] ?? 'published';
         $content = trim($_POST['content'] ?? '');
-        // Grab the category ID from the form
-        $categoryId = $_POST['category_id'] ?? null; 
-        
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
-        $user = $_SESSION['user']['username'] ?? 'Guest';
+        $authorId = $_SESSION['user']['id'] ?? 0;
 
-        // --- LAYER 1: SERVER-SIDE VALIDATION ---
-        if (empty($title) || empty($content) || empty($categoryId)) {
-            $_SESSION['error'] = "All fields (including category) are required.";
+        if (empty($title) || empty($content)) {
+            $_SESSION['error'] = "Title and Content are required fields.";
             header("Location: /post/create");
             exit;
         }
 
-        // --- LAYER 2: THE INSECURE CODE TRAP ---
-        $isMalicious = false;
-        $eventType = '';
+        $db = Connection::getInstance();
+        $stmt = $db->prepare("
+            INSERT INTO posts (title, category_id, content, author_id, status) 
+            VALUES (:title, :category_id, :content, :author_id, :status)
+        ");
+        
+        $stmt->execute([
+            ':title' => $title,
+            ':category_id' => $categoryId,
+            ':content' => $content,
+            ':author_id' => $authorId,
+            ':status' => $status
+        ]);
 
-        // Detect basic XSS payloads
-        if (preg_match('/(<script>|onload=|onerror=|javascript:)/i', $content . $title)) {
-            $isMalicious = true;
-            $eventType = 'XSS_PAYLOAD_DETECTED';
-        } 
-        // Detect basic SQL Injection payloads
-        elseif (preg_match('/(DROP TABLE|UNION SELECT|--;|OR 1=1)/i', $content . $title)) {
-            $isMalicious = true;
-            $eventType = 'SQLI_PAYLOAD_DETECTED';
+        $_SESSION['success'] = "New post successfully published!";
+        header("Location: /posts");
+        exit;
+    }
+
+    // 6. Show Edit Post Form
+    public function edit(Request $req, Response $res): void 
+    {
+        $db = Connection::getInstance();
+        $postId = $_GET['id'] ?? 0;
+        $userId = $_SESSION['user']['id'] ?? 0;
+        $isAdmin = ($_SESSION['user']['role'] ?? 'user') === 'admin';
+
+        if ($isAdmin) {
+            $stmt = $db->prepare("SELECT * FROM posts WHERE id = :id");
+            $stmt->execute([':id' => $postId]);
+        } else {
+            $stmt = $db->prepare("SELECT * FROM posts WHERE id = :id AND author_id = :user_id");
+            $stmt->execute([':id' => $postId, ':user_id' => $userId]);
         }
+        
+        $post = $stmt->fetch();
 
-        // Trigger the Trap!
-        if ($isMalicious) {
-            $logLine = sprintf("[%s] [CRITICAL] [%s] [IP: %s] [User: %s] [POST /post/store]\n", 
-                date('c'), 
-                $eventType, 
-                $ip, 
-                $user
-            );
-            file_put_contents(__DIR__ . '/../../logs/security.log', $logLine, FILE_APPEND);
-
-            $_SESSION['error'] = "SECURITY INTERVENTION: Malicious payload detected. Your IP and actions have been logged.";
-            header("Location: /post/create");
+        if (!$post) {
+            $_SESSION['error'] = "Post not found or permission denied.";
+            header("Location: /posts");
             exit;
         }
 
-        // --- SAFE EXECUTION ---
-        $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
-        $safeContent = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
-        
-        $db = \Core\Database\Connection::getInstance();
-        
-        // Update the SQL statement to include category_id
-        $stmt = $db->prepare("INSERT INTO posts (title, content, author_id, category_id) VALUES (?, ?, ?, ?)");
-        
-        $authorId = $_SESSION['user']['id'] ?? 1; 
-        
-        $stmt->execute([$safeTitle, $safeContent, $authorId, $categoryId]);
-        
-        $_SESSION['success'] = "Post published securely!";
-        header("Location: /posts"); // Redirect to the posts table, not the dashboard
+        $categories = [];
+        try {
+            $categories = $db->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
+        } catch (\PDOException $e) {}
+
+        $html = $this->view->render('edit_post', [
+            'title' => 'Edit Post',
+            'post' => $post,
+            'categories' => $categories
+        ]);
+        $res->html($html);
+    }
+
+    // 7. Process Post Update
+    public function update(Request $req, Response $res): void 
+    {
+        $postId = $_POST['post_id'] ?? 0;
+        $title = trim($_POST['title'] ?? '');
+        $categoryId = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
+        $status = $_POST['status'] ?? 'published';
+        $content = trim($_POST['content'] ?? '');
+        $userId = $_SESSION['user']['id'] ?? 0;
+        $isAdmin = ($_SESSION['user']['role'] ?? 'user') === 'admin';
+
+        $db = Connection::getInstance();
+
+        if ($isAdmin) {
+            $stmt = $db->prepare("UPDATE posts SET title = :title, category_id = :category_id, content = :content, status = :status WHERE id = :post_id");
+            $stmt->execute([':title' => $title, ':category_id' => $categoryId, ':content' => $content, ':status' => $status, ':post_id' => $postId]);
+        } else {
+            $stmt = $db->prepare("UPDATE posts SET title = :title, category_id = :category_id, content = :content, status = :status WHERE id = :post_id AND author_id = :user_id");
+            $stmt->execute([':title' => $title, ':category_id' => $categoryId, ':content' => $content, ':status' => $status, ':post_id' => $postId, ':user_id' => $userId]);
+        }
+
+        $_SESSION['success'] = "Post successfully updated!";
+        header("Location: /posts");
         exit;
     }
 }

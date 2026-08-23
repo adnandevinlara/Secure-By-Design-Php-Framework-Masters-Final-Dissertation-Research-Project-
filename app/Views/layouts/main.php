@@ -41,7 +41,7 @@
                                 <img alt="Logo" height="17" src="/assets/images/logo-dark.png"/>
                             </span>
                         </a>
-                        <a class="logo logo-light" href="/dashboard">
+                        <a class="logo logo-light" href="/">
                             <span class="logo-sm">
                                 <img alt="Logo" height="22" src="/assets/images/logo-light.svg"/>
                             </span>
