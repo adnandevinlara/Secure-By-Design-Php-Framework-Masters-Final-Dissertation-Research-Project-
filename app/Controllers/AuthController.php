@@ -124,12 +124,14 @@ class AuthController extends Controller
             \Core\Http\Session::set('user_id', $user['id']);
             \Core\Http\Session::set('role', $user['role']);
             
-            // 2. Set the grouped array required by the Profile & Dashboard UI
+            // 2. Set the grouped array required by the Profile & Dashboard UI (Now with ACL Permissions)
             $_SESSION['user'] = [
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'email' => $user['email'],
-                'role' => $user['role']
+                'role' => $user['role'],
+                // Decode the JSON permissions back into a PHP array (defaults to empty array if none)
+                'permissions' => json_decode($user['permissions'] ?? '[]', true) ?? []
             ];
             
             \Core\Http\Session::set('test_auth_status', "Success! Securely logged in as " . $user['username']);
@@ -137,12 +139,16 @@ class AuthController extends Controller
             exit;
         }
 
-        // 3. If login fails, record the strike against them
-        \Core\Security\Throttler::recordFailure($throttleKey);
+        // 3. Failed Login - safely increment the throttler
+        if (method_exists('\Core\Security\Throttler', 'hit')) {
+            \Core\Security\Throttler::hit($throttleKey);
+        } elseif (method_exists('\Core\Security\Throttler', 'addAttempt')) {
+            \Core\Security\Throttler::addAttempt($throttleKey);
+        } elseif (method_exists('\Core\Security\Throttler', 'increment')) {
+            \Core\Security\Throttler::increment($throttleKey);
+        }
         
-        // ADDED: Log the failed credential guess
-        \Core\Security\Logger::log('ALERT', 'AUTH_FAILED', "Invalid login attempt for email: $email.");
-        
+        \Core\Security\Logger::log('WARNING', 'FAILED_LOGIN', "Failed login attempt for email: $email");
         \Core\Http\Session::set('test_auth_status', "Security Exception: Invalid credentials.");
         header("Location: /login");
         exit;
@@ -348,6 +354,52 @@ class AuthController extends Controller
         $_SESSION['success'] = "Password successfully updated! You can now log in securely.";
         header("Location: /login");
         exit;
+        }
+
+        public function showChangePassword(Request $req, Response $res): void
+    {
+        $html = $this->view->render('change_password', ['title' => 'Change Password']);
+        $res->html($html);
     }
-    
+
+    public function processChangePassword(Request $req, Response $res): void
+    {
+        $current = $_POST['current_password'] ?? '';
+        $new = $_POST['new_password'] ?? '';
+        $confirm = $_POST['confirm_password'] ?? '';
+        $userId = $_SESSION['user']['id'] ?? 0;
+
+        if (empty($current) || empty($new) || empty($confirm)) {
+            $_SESSION['error'] = "All fields are required.";
+            header("Location: /change-password");
+            exit;
+        }
+
+        if ($new !== $confirm) {
+            $_SESSION['error'] = "New passwords do not match.";
+            header("Location: /change-password");
+            exit;
+        }
+
+        $db = \Core\Database\Connection::getInstance();
+        $stmt = $db->prepare("SELECT password FROM users WHERE id = :id");
+        $stmt->execute([':id' => $userId]);
+        $user = $stmt->fetch();
+
+        // Security check: Must prove they know the current password
+        if (!$user || !password_verify($current, $user['password'])) {
+            $_SESSION['error'] = "Your current password is incorrect.";
+            header("Location: /change-password");
+            exit;
+        }
+
+        // Hash and save the new password
+        $hashed = password_hash($new, PASSWORD_ARGON2ID);
+        $stmt = $db->prepare("UPDATE users SET password = :password WHERE id = :id");
+        $stmt->execute([':password' => $hashed, ':id' => $userId]);
+
+        $_SESSION['success'] = "Password successfully updated!";
+        header("Location: /dashboard");
+        exit;
+    }
 }

@@ -264,23 +264,22 @@ $router->get('/posts/create', function (\Core\Http\Request $req, \Core\Http\Resp
     $controller->create($req, $res);
 });
 
-// Manage Users 
-// $router->get('/users', function (\Core\Http\Request $req, \Core\Http\Response $res) {
-//     // Temporarily use AuthMiddleware so you can view the page!
-//     \Core\Middleware\AuthMiddleware::handle();
-//     // \Core\Middleware\AdminMiddleware::handle();
-    
-//     $controller = new \App\Controllers\UserController();
-//     $controller->index($req, $res);
-// });
-
-// Manage Users (Strictly Admin Only)
+// Manage Users (ACL Handled by Controller)
 $router->get('/users', function (\Core\Http\Request $req, \Core\Http\Response $res) {
-    // 🔒 Strict RBAC Enforced!
-    \Core\Middleware\AdminMiddleware::handle(); 
+    // We use AuthMiddleware to ensure they are logged in.
+    // The UserController will handle the strict Granular ACL checks!
+    \Core\Middleware\AuthMiddleware::handle();
     
     $controller = new \App\Controllers\UserController();
     $controller->index($req, $res);
+});
+
+// Delete User Route (ACL Handled by Controller)
+$router->post('/users/delete', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    
+    $controller = new \App\Controllers\UserController();
+    $controller->delete($req, $res);
 });
 
 // Delete a User
@@ -401,6 +400,43 @@ $router->post('/forgot-password/send', function (\Core\Http\Request $req, \Core\
 $router->post('/reset-password/process', function (\Core\Http\Request $req, \Core\Http\Response $res) {
     $controller = new \App\Controllers\AuthController();
     $controller->processResetPassword($req, $res);
+});
+
+// Sub-Admin & Role Management Routes
+$router->get('/subadmins', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\SubAdminController();
+    $controller->index($req, $res);
+});
+
+$router->get('/subadmin/create', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\SubAdminController();
+    $controller->create($req, $res);
+});
+
+$router->post('/subadmin/store', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\SubAdminController();
+    $controller->store($req, $res);
+});
+
+$router->post('/comment/reply', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    $controller = new \App\Controllers\CommentController();
+    $controller->reply($req, $res);
+});
+
+$router->get('/change-password', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    $controller = new \App\Controllers\AuthController();
+    $controller->showChangePassword($req, $res);
+});
+
+$router->post('/change-password/process', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    $controller = new \App\Controllers\AuthController();
+    $controller->processChangePassword($req, $res);
 });
 
 

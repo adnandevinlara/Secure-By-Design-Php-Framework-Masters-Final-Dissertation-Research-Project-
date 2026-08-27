@@ -8,17 +8,30 @@ use Core\Http\Response;
 
 class CommentController extends Controller
 {
-    // 1. Show the Comments Dashboard (With ROBUST RBAC & LEFT JOIN)
+    private function getAcl() {
+        $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
+        return [
+            'isAdmin' => in_array($role, ['admin', 'super admin', 'super_admin']),
+            'isSubAdmin' => $role === 'sub_admin',
+            'perms' => $_SESSION['user']['permissions'] ?? []
+        ];
+    }
+
     public function index(Request $req, Response $res): void
     {
         $db = \Core\Database\Connection::getInstance();
         $userId = $_SESSION['user']['id'] ?? 0;
-        
-        // ROBUST ADMIN CHECK: Safely catches 'admin', 'Admin', 'super admin', etc.
-        $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
-        $isAdmin = in_array($role, ['admin', 'super admin', 'super_admin']);
+        extract($this->getAcl());
 
-        // SECURE: Use LEFT JOIN so we don't hide comments if their parent post was deleted
+        // ACL Hard-Block: Must have view rights
+        if ($isSubAdmin && !in_array('view_comments', $perms)) {
+            $_SESSION['error'] = "Access Denied: You do not have permission to view comments.";
+            header("Location: /dashboard");
+            exit;
+        }
+
+        $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('view_comments', $perms));
+
         $query = "SELECT c.*, COALESCE(p.title, 'Unknown/Deleted Post') as post_title 
                   FROM comments c 
                   LEFT JOIN posts p ON c.post_id = p.id 
@@ -26,13 +39,11 @@ class CommentController extends Controller
         
         $params = [];
 
-        // If not admin, strictly lock to their own posts
-        if (!$isAdmin) {
+        if (!$hasGlobalAccess) {
             $query .= " AND p.author_id = :user_id";
             $params[':user_id'] = $userId;
         }
 
-        // Re-adding the missing date filters for the view
         $status = $_GET['status'] ?? '';
         $start_date = $_GET['start_date'] ?? '';
         $end_date = $_GET['end_date'] ?? '';
@@ -56,7 +67,6 @@ class CommentController extends Controller
         $stmt->execute($params);
         $comments = $stmt->fetchAll();
 
-        // Safely ensure 'is_replied' exists so the view doesn't throw warnings
         foreach ($comments as &$c) {
             $c['is_replied'] = $c['is_replied'] ?? false;
         }
@@ -69,7 +79,7 @@ class CommentController extends Controller
         $res->html($html);
     }
 
-    // 2. Submit a new comment
+    // Public method - no ACL needed for frontend comment submission
     public function store(Request $req, Response $res): void
     {
         $postId = $_POST['post_id'] ?? null;
@@ -101,51 +111,101 @@ class CommentController extends Controller
         exit;
     }
 
-    // 3. Update Status (With Robust Admin Check)
     public function updateStatus(Request $req, Response $res): void
     {
         $commentId = $_POST['comment_id'] ?? 0;
         $newStatus = $_POST['status'] ?? 'pending';
-        $userId = $_SESSION['user']['id'] ?? 0;
+        extract($this->getAcl());
+
+        $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('status_comments', $perms));
         
-        $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
-        $isAdmin = in_array($role, ['admin', 'super admin', 'super_admin']);
+        // STRICT SECURITY: Only Admins/Sub-Admins with permission can change status
+        if (!$hasGlobalAccess) {
+            $_SESSION['error'] = "Security Alert: Only administrators can approve or hide comments.";
+            header("Location: /comments");
+            exit;
+        }
 
         $db = \Core\Database\Connection::getInstance();
-        
-        if ($isAdmin) {
-            $stmt = $db->prepare("UPDATE comments SET status = :status WHERE id = :comment_id");
-            $stmt->execute([':status' => $newStatus, ':comment_id' => $commentId]);
-        } else {
-            $stmt = $db->prepare("UPDATE comments SET status = :status WHERE id = :comment_id AND post_id IN (SELECT id FROM posts WHERE author_id = :user_id)");
-            $stmt->execute([':status' => $newStatus, ':comment_id' => $commentId, ':user_id' => $userId]);
-        }
+        $stmt = $db->prepare("UPDATE comments SET status = :status WHERE id = :comment_id");
+        $stmt->execute([':status' => $newStatus, ':comment_id' => $commentId]);
 
         $_SESSION['success'] = "Comment status updated!";
         header("Location: /comments");
         exit;
     }
 
-    // 4. Delete a comment (With Robust Admin Check)
     public function delete(Request $req, Response $res): void
     {
         $commentId = $_POST['comment_id'] ?? 0;
-        $userId = $_SESSION['user']['id'] ?? 0;
-        
-        $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
-        $isAdmin = in_array($role, ['admin', 'super admin', 'super_admin']);
+        extract($this->getAcl());
 
-        $db = \Core\Database\Connection::getInstance();
+        $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('delete_comments', $perms));
         
-        if ($isAdmin) {
-            $stmt = $db->prepare("DELETE FROM comments WHERE id = :comment_id");
-            $stmt->execute([':comment_id' => $commentId]);
-        } else {
-            $stmt = $db->prepare("DELETE FROM comments WHERE id = :comment_id AND post_id IN (SELECT id FROM posts WHERE author_id = :user_id)");
-            $stmt->execute([':comment_id' => $commentId, ':user_id' => $userId]);
+        // STRICT SECURITY: Only Admins/Sub-Admins with permission can delete comments
+        if (!$hasGlobalAccess) {
+            $_SESSION['error'] = "Security Alert: Only administrators can delete comments.";
+            header("Location: /comments");
+            exit;
         }
 
+        $db = \Core\Database\Connection::getInstance();
+        $stmt = $db->prepare("DELETE FROM comments WHERE id = :comment_id");
+        $stmt->execute([':comment_id' => $commentId]);
+
         $_SESSION['success'] = "Comment permanently deleted.";
+        header("Location: /comments");
+        exit;
+    }
+
+    public function reply(Request $req, Response $res): void
+    {
+        $commentId = $_POST['comment_id'] ?? 0;
+        $postId = $_POST['post_id'] ?? 0;
+        $replyContent = trim($_POST['reply_content'] ?? '');
+        
+        extract($this->getAcl());
+
+        // ACL Check: Can this user reply to comments?
+        $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('reply_comments', $perms));
+        
+        $db = \Core\Database\Connection::getInstance();
+        
+        // If they are a standard user, ensure they actually own the post this comment is on
+        if (!$hasGlobalAccess) {
+            $stmt = $db->prepare("SELECT id FROM posts WHERE id = :post_id AND author_id = :user_id");
+            $stmt->execute([':post_id' => $postId, ':user_id' => $_SESSION['user']['id']]);
+            if (!$stmt->fetch()) {
+                $_SESSION['error'] = "Security Alert: You can only reply to comments on your own posts.";
+                header("Location: /comments");
+                exit;
+            }
+        }
+
+        if (empty($replyContent)) {
+            $_SESSION['error'] = "Reply content cannot be empty.";
+            header("Location: /comments");
+            exit;
+        }
+
+        $authorId = $_SESSION['user']['id'] ?? 0;
+        $author = $_SESSION['user']['username'] ?? 'Admin';
+        
+        // Format the reply nicely and auto-approve it since an admin/author is posting it
+        $formattedReply = "↳ " . $replyContent; 
+        
+        $stmt = $db->prepare("INSERT INTO comments (post_id, author_id, author, content, status) VALUES (?, ?, ?, ?, 'approved')");
+        $stmt->execute([$postId, $authorId, htmlspecialchars($author, ENT_QUOTES, 'UTF-8'), htmlspecialchars($formattedReply, ENT_QUOTES, 'UTF-8')]);
+
+        // Attempt to update the original comment to show it was replied to
+        try {
+            $update = $db->prepare("UPDATE comments SET is_replied = 1 WHERE id = ?");
+            $update->execute([$commentId]);
+        } catch (\Exception $e) {
+            // Fails safely if the is_replied column wasn't added to the DB yet
+        }
+
+        $_SESSION['success'] = "Your reply was posted successfully!";
         header("Location: /comments");
         exit;
     }

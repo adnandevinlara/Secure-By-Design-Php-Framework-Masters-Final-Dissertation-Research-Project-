@@ -158,10 +158,21 @@
                                             <h5 class="modal-title">Reply to <?= htmlspecialchars($comment['author'], ENT_QUOTES) ?></h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
-                                        <div class="modal-body text-center text-muted">
-                                            <i class="bx bx-wrench fs-1 mb-3 text-warning"></i>
-                                            <p>Reply feature is being wired up next!</p>
-                                        </div>
+                                        <form action="/comment/reply" method="POST">
+                                            <?= \Core\Security\Csrf::getFormField() ?? '' ?>
+                                            <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
+                                            <input type="hidden" name="post_id" value="<?= $comment['post_id'] ?>">
+                                            
+                                            <div class="mb-3 text-start">
+                                                <label class="form-label fw-bold">Your Reply</label>
+                                                <textarea name="reply_content" class="form-control" rows="3" required placeholder="Type your reply here..."></textarea>
+                                            </div>
+                                            
+                                            <div class="text-end">
+                                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-primary"><i class="bx bx-send me-1"></i> Post Reply</button>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
                             </div>

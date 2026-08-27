@@ -31,6 +31,12 @@ class Connection
                     role TEXT DEFAULT 'user',
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
+                
+                try {
+                    self::$instance->exec("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT NULL");
+                } catch (\PDOException $e) {
+                    // Column already exists, continue normally without crashing
+                }
 
                 // Automatically create the categories table
                 self::$instance->exec("CREATE TABLE IF NOT EXISTS categories (

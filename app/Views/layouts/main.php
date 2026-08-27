@@ -76,7 +76,7 @@
                             <a class="dropdown-item" href="/profile"><i class="bx bx-user font-size-16 align-middle me-1"></i> Profile</a>
                             <div class="dropdown-divider"></div>
                             <form method="POST" action="/logout" class="m-0">
-                                <?= \Core\Security\Csrf::getFormField(); ?>
+                                <?= \Core\Security\Csrf::getFormField() ?? ''; ?>
                                 <button type="submit" class="dropdown-item text-danger"><i class="bx bx-power-off font-size-16 align-middle me-1 text-danger"></i> Logout</button>
                             </form>
                         </div>
@@ -120,26 +120,43 @@
                             </a>
                         </li>
 
-                        <!-- Only show these tabs to Administrators -->
-                        <?php if (isset($_SESSION['user']['role']) && in_array(strtolower($_SESSION['user']['role']), ['admin', 'administrator'])): ?>
-                            
+                        <!-- DYNAMIC ACL MENUS FOR ADMINS & SUB-ADMINS -->
+                        <?php 
+                            $userRoleStr = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
+                            $isSuperAdmin = in_array($userRoleStr, ['admin', 'administrator', 'super admin', 'super_admin']);
+                            $isSubAdmin = $userRoleStr === 'sub_admin';
+                            $navPerms = $_SESSION['user']['permissions'] ?? [];
+                        ?>
+
+                        <?php if ($isSuperAdmin || ($isSubAdmin && in_array('view_users', $navPerms))): ?>
                             <li>
                                 <a class="waves-effect" href="/users">
                                     <i class="bx bx-user-check"></i>
                                     <span>Manage Users</span>
                                 </a>
                             </li>
+                        <?php endif; ?>
 
+                        <!-- Only Super Admins can manage Sub-Admins -->
+                        <?php if ($isSuperAdmin): ?>
+                            <li>
+                                <a class="waves-effect" href="/subadmins">
+                                    <i class="bx bx-shield-quarter"></i>
+                                    <span>Manage Sub-Admins</span>
+                                </a>
+                            </li>
+                        <?php endif; ?>
+
+                        <?php if ($isSuperAdmin || ($isSubAdmin && in_array('view_security', $navPerms))): ?>
                             <li class="menu-title">Security & Forensics</li>
-
                             <li>
                                 <a class="waves-effect text-warning" href="/security-logs">
                                     <i class="bx bx-shield-quarter text-warning"></i>
                                     <span class="text-warning">Security Audit Logs</span>
                                 </a>
                             </li>
-
                         <?php endif; ?>
+
                     </ul>
                 </div>
             </div>
@@ -149,7 +166,6 @@
         <div class="main-content">
             <div class="page-content">
                 <div class="container-fluid">
-
 
                     <!-- Dynamic Page View Injected Here -->
                     <?= $content ?? '' ?>

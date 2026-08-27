@@ -15,7 +15,7 @@
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item px-0">
                                 <span class="fw-bold text-success"><i class="bx bx-check-circle me-1"></i> Administrative Access:</span> 
-                                ASVS V4.1: Strictly enforces Administrator-only access to this dashboard.
+                                ASVS V4.1: Enforces Strict Granular Access Control List (ACL) for Dashboard views.
                             </li>
                             <li class="list-group-item px-0">
                                 <span class="fw-bold text-success"><i class="bx bx-check-circle me-1"></i> Content Security Policy:</span> 
@@ -41,8 +41,11 @@
 
 <!-- Stats Row -->
 <div class="row">
-    <div class="col-xl-3 col-md-6">
-        <div class="card mini-stats-wid shadow-sm">
+    
+    <!-- USERS CARD (Requires 'view_users') -->
+    <?php if ($isAdmin || ($isSubAdmin && in_array('view_users', $perms))): ?>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card mini-stats-wid shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex">
                     <div class="flex-grow-1">
@@ -58,8 +61,12 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="card mini-stats-wid shadow-sm">
+    <?php endif; ?>
+
+    <!-- POSTS CARD (Requires 'view_blogs') -->
+    <?php if ($isAdmin || ($isSubAdmin && in_array('view_blogs', $perms))): ?>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card mini-stats-wid shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex">
                     <div class="flex-grow-1">
@@ -75,8 +82,12 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="card mini-stats-wid shadow-sm">
+    <?php endif; ?>
+
+    <!-- COMMENTS CARD (Requires 'view_comments') -->
+    <?php if ($isAdmin || ($isSubAdmin && in_array('view_comments', $perms))): ?>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card mini-stats-wid shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex">
                     <div class="flex-grow-1">
@@ -92,8 +103,12 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="card mini-stats-wid border-danger border border-1 shadow-sm">
+    <?php endif; ?>
+
+    <!-- SECURITY ALERTS CARD (Requires 'view_security') -->
+    <?php if ($isAdmin || ($isSubAdmin && in_array('view_security', $perms))): ?>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card mini-stats-wid border-danger border border-1 shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex">
                     <div class="flex-grow-1">
@@ -109,11 +124,14 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <!-- Recent Activity Row -->
 <div class="row">
-    <!-- Recent Posts Feed -->
+    
+    <!-- Recent Posts Feed (Requires 'view_blogs') -->
+    <?php if ($isAdmin || ($isSubAdmin && in_array('view_blogs', $perms))): ?>
     <div class="col-xl-4 col-lg-6 mb-4">
         <div class="card h-100 shadow-sm border-0">
             <div class="card-body">
@@ -137,8 +155,10 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
-    <!-- Recent Comments Feed -->
+    <!-- Recent Comments Feed (Requires 'view_comments') -->
+    <?php if ($isAdmin || ($isSubAdmin && in_array('view_comments', $perms))): ?>
     <div class="col-xl-4 col-lg-6 mb-4">
         <div class="card h-100 shadow-sm border-0">
             <div class="card-body">
@@ -162,8 +182,10 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
-    <!-- Recent Security Events Feed -->
+    <!-- Recent Security Events Feed (Requires 'view_security') -->
+    <?php if ($isAdmin || ($isSubAdmin && in_array('view_security', $perms))): ?>
     <div class="col-xl-4 col-lg-12 mb-4">
         <div class="card h-100 shadow-sm border-0">
             <div class="card-body">
@@ -187,6 +209,7 @@
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <?php 

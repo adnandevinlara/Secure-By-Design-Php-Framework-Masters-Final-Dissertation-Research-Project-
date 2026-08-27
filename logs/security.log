@@ -49,3 +49,17 @@
 [2026-08-20T21:32:25+02:00] [ALERT] [AUTH_FAILED] [IP: ::1] [UID: Guest] [POST /login] - Invalid login attempt for email: mail.imdadullah@gmail.com.
 [2026-08-20T21:32:44+02:00] [ALERT] [AUTH_FAILED] [IP: ::1] [UID: Guest] [POST /login] - Invalid login attempt for email: mail.imdadullah@gmail.com.
 [2026-08-20T21:42:14+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 7] [GET /admin-panel] - A standard user attempted to access an admin-only route.
+[2026-08-26T23:49:46+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-26T23:49:48+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-26T23:49:51+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-26T23:49:56+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-26T23:51:06+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-26T23:52:03+02:00] [WARNING] [FAILED_LOGIN] [IP: ::1] [UID: Guest] [POST /login] - Failed login attempt for email: imdad2@gmail.com
+[2026-08-27T02:58:37+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-27T02:58:40+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-27T02:59:46+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-27T02:59:50+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-27T03:08:46+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-27T03:09:19+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-27T03:13:51+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-08-27T03:15:38+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.

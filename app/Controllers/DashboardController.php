@@ -19,19 +19,19 @@ class DashboardController
     {
         $db = Connection::getInstance();
         
-        // Check the logged-in user's role and ID from the session
-        $userRole = $_SESSION['user']['role'] ?? 'user';
+        // Normalize the role text
+        $userRole = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
         $userId = $_SESSION['user']['id'] ?? 0;
 
-        // If the user is an Admin, load the original admin dashboard
-        if ($userRole === 'admin' || $userRole === 'administrator') {
-            $this->loadAdminDashboard($db, $res);
+        // If the user is an Admin or Sub-Admin, load the main admin dashboard with ACL
+        if (in_array($userRole, ['admin', 'administrator', 'super admin', 'super_admin', 'sub_admin'])) {
+            $this->loadAdminDashboard($db, $res, $userRole);
             return;
         }
 
-        // --- REGISTERED USER DASHBOARD LOGIC ---
+        // --- REGISTERED USER DASHBOARD LOGIC (Remains unchanged for normal users) ---
         
-        // 1. Fetch User Stats (Execute the queries directly for SQLite)
+        // 1. Fetch User Stats
         $stmtPosts = $db->prepare("SELECT COUNT(*) FROM posts WHERE author_id = ?");
         $stmtPosts->execute([$userId]);
         $userPosts = $stmtPosts->fetchColumn();
@@ -55,7 +55,7 @@ class DashboardController
             'pending_comments' => $pendingComments
         ];
 
-        // 2. Fetch Pending Comments for the Table (Comments on THIS user's posts)
+        // 2. Fetch Pending Comments for the Table
         $stmt = $db->prepare("
             SELECT c.*, p.title as post_title 
             FROM comments c 
@@ -66,8 +66,8 @@ class DashboardController
         $stmt->execute([$userId]);
         $pending_comments = $stmt->fetchAll();
 
-        // 3. Dynamic Chart Data (Comments received on user's posts this week)
-        $chart_data = [0, 0, 0, 0, 0, 0, 0]; // Default Mon-Sun to 0
+        // 3. Dynamic Chart Data
+        $chart_data = [0, 0, 0, 0, 0, 0, 0];
 
         $stmtChart = $db->prepare("
             SELECT strftime('%w', c.created_at) as day_of_week, COUNT(*) as count 
@@ -80,7 +80,6 @@ class DashboardController
         $stmtChart->execute([$userId]);
         $chartResults = $stmtChart->fetchAll();
 
-        // Map SQLite days (0=Sun, 1=Mon) to our Chart array (0=Mon, 6=Sun)
         foreach ($chartResults as $row) {
             $dayIndex = (int)$row['day_of_week'];
             $map = [1 => 0, 2 => 1, 3 => 2, 4 => 3, 5 => 4, 6 => 5, 0 => 6];
@@ -100,24 +99,47 @@ class DashboardController
         $res->html($html);
     }
 
-    // --- ADMIN DASHBOARD LOGIC ---
-    private function loadAdminDashboard($db, $res): void 
+    // --- ADMIN / SUB-ADMIN DASHBOARD LOGIC (Now with ACL!) ---
+    private function loadAdminDashboard($db, $res, $userRole): void 
     {
-        $stats = [
-            'total_users' => $db->query("SELECT COUNT(*) FROM users")->fetchColumn(),
-            'total_posts' => $db->query("SELECT COUNT(*) FROM posts")->fetchColumn(),
-            'total_comments' => $db->query("SELECT COUNT(*) FROM comments")->fetchColumn(),
-            'total_alerts' => $this->tableExists($db, 'security_logs') 
-                ? $db->query("SELECT COUNT(*) FROM security_logs")->fetchColumn() 
-                : 0
-        ];
+        $isAdmin = in_array($userRole, ['admin', 'administrator', 'super admin', 'super_admin']);
+        $isSubAdmin = $userRole === 'sub_admin';
+        $perms = $_SESSION['user']['permissions'] ?? [];
 
-        $posts = $db->query("SELECT title, content FROM posts ORDER BY created_at DESC LIMIT 5")->fetchAll();
-        $recent_comments = $db->query("SELECT author, content FROM comments ORDER BY created_at DESC LIMIT 5")->fetchAll();
+        $stats = [
+            'total_users' => 0,
+            'total_posts' => 0,
+            'total_comments' => 0,
+            'total_alerts' => 0
+        ];
         
+        $posts = [];
+        $recent_comments = [];
         $recent_logs = [];
-        if ($this->tableExists($db, 'security_logs')) {
-            $recent_logs = $db->query("SELECT event_type, ip_address FROM security_logs ORDER BY timestamp DESC LIMIT 5")->fetchAll();
+
+        // ACL: View Users
+        if ($isAdmin || ($isSubAdmin && in_array('view_users', $perms))) {
+            $stats['total_users'] = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+        }
+
+        // ACL: View Blogs
+        if ($isAdmin || ($isSubAdmin && in_array('view_blogs', $perms))) {
+            $stats['total_posts'] = $db->query("SELECT COUNT(*) FROM posts")->fetchColumn();
+            $posts = $db->query("SELECT title, content FROM posts ORDER BY created_at DESC LIMIT 5")->fetchAll();
+        }
+
+        // ACL: View Comments
+        if ($isAdmin || ($isSubAdmin && in_array('view_comments', $perms))) {
+            $stats['total_comments'] = $db->query("SELECT COUNT(*) FROM comments")->fetchColumn();
+            $recent_comments = $db->query("SELECT author, content FROM comments ORDER BY created_at DESC LIMIT 5")->fetchAll();
+        }
+
+        // ACL: View Security Alerts
+        if ($isAdmin || ($isSubAdmin && in_array('view_security', $perms))) {
+            if ($this->tableExists($db, 'security_logs')) {
+                $stats['total_alerts'] = $db->query("SELECT COUNT(*) FROM security_logs")->fetchColumn();
+                $recent_logs = $db->query("SELECT event_type, ip_address FROM security_logs ORDER BY timestamp DESC LIMIT 5")->fetchAll();
+            }
         }
 
         $html = $this->view->render('dashboard', [
@@ -125,7 +147,10 @@ class DashboardController
             'stats' => $stats,
             'posts' => $posts,
             'recent_comments' => $recent_comments,
-            'recent_logs' => $recent_logs
+            'recent_logs' => $recent_logs,
+            'isAdmin' => $isAdmin,
+            'isSubAdmin' => $isSubAdmin,
+            'perms' => $perms
         ]);
 
         $res->html($html);

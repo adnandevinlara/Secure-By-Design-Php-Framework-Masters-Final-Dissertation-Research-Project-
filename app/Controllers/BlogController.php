@@ -9,19 +9,37 @@ use Core\Database\Connection;
 
 class BlogController extends Controller
 {
-    // 1. Show the Blog Posts Management Dashboard
+    // Helper to extract ACL permissions cleanly
+    private function getAcl() {
+        $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
+        return [
+            'isAdmin' => in_array($role, ['admin', 'super admin', 'super_admin']),
+            'isSubAdmin' => $role === 'sub_admin',
+            'perms' => $_SESSION['user']['permissions'] ?? []
+        ];
+    }
+
     public function index(Request $req, Response $res): void
     {
         $db = Connection::getInstance();
         $userId = $_SESSION['user']['id'] ?? 0;
-        $isAdmin = ($_SESSION['user']['role'] ?? 'user') === 'admin';
+        extract($this->getAcl()); // Loads $isAdmin, $isSubAdmin, and $perms
+
+        // 1. ACL Hard-Block: Stop Sub-Admins who don't have view rights
+        if ($isSubAdmin && !in_array('view_blogs', $perms)) {
+            $_SESSION['error'] = "Access Denied: You do not have permission to view blogs.";
+            header("Location: /dashboard");
+            exit;
+        }
 
         $categories = [];
         try {
             $categories = $db->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
         } catch (\PDOException $e) {}
 
-        // RBAC: Admins see everything. Users see only their own posts.
+        // 2. ACL Data Scope: Can they see EVERYONE'S posts, or just their own?
+        $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('view_blogs', $perms));
+
         $query = "
             SELECT p.*, c.name AS category_name 
             FROM posts p 
@@ -31,7 +49,7 @@ class BlogController extends Controller
         
         $params = [];
 
-        if (!$isAdmin) {
+        if (!$hasGlobalAccess) {
             $query .= " AND p.author_id = :user_id";
             $params[':user_id'] = $userId;
         }
@@ -73,18 +91,23 @@ class BlogController extends Controller
         $res->html($html);
     }
 
-    // 2. Update Status (Publish/Hide)
     public function updateStatus(Request $req, Response $res): void
     {
         $postId = $_POST['post_id'] ?? 0;
         $newStatus = $_POST['status'] ?? 'published';
         $userId = $_SESSION['user']['id'] ?? 0;
-        $isAdmin = ($_SESSION['user']['role'] ?? 'user') === 'admin';
+        extract($this->getAcl());
+
+        if ($isSubAdmin && !in_array('status_blog', $perms)) {
+            $_SESSION['error'] = "Access Denied: Missing 'Change Status' permission.";
+            header("Location: /posts");
+            exit;
+        }
 
         $db = Connection::getInstance();
+        $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('status_blog', $perms));
         
-        // RBAC Check
-        if ($isAdmin) {
+        if ($hasGlobalAccess) {
             $stmt = $db->prepare("UPDATE posts SET status = :status WHERE id = :post_id");
             $stmt->execute([':status' => $newStatus, ':post_id' => $postId]);
         } else {
@@ -97,17 +120,22 @@ class BlogController extends Controller
         exit;
     }
 
-    // 3. Delete a post
     public function delete(Request $req, Response $res): void
     {
         $postId = $_POST['post_id'] ?? 0;
         $userId = $_SESSION['user']['id'] ?? 0;
-        $isAdmin = ($_SESSION['user']['role'] ?? 'user') === 'admin';
+        extract($this->getAcl());
+
+        if ($isSubAdmin && !in_array('delete_blog', $perms)) {
+            $_SESSION['error'] = "Access Denied: Missing 'Delete Blog' permission.";
+            header("Location: /posts");
+            exit;
+        }
 
         $db = Connection::getInstance();
+        $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('delete_blog', $perms));
         
-        // RBAC Check
-        if ($isAdmin) {
+        if ($hasGlobalAccess) {
             $stmt = $db->prepare("DELETE FROM posts WHERE id = :post_id");
             $stmt->execute([':post_id' => $postId]);
         } else {
@@ -120,9 +148,16 @@ class BlogController extends Controller
         exit;
     }
 
-    // 4. Show Create Post Form
     public function create(Request $req, Response $res): void 
     {
+        extract($this->getAcl());
+        
+        if ($isSubAdmin && !in_array('create_blog', $perms)) {
+            $_SESSION['error'] = "Access Denied: Missing 'Create Blog' permission.";
+            header("Location: /posts");
+            exit;
+        }
+
         $db = Connection::getInstance();
         $categories = [];
         try {
@@ -136,9 +171,16 @@ class BlogController extends Controller
         $res->html($html);
     }
 
-    // 5. Process New Post
     public function store(Request $req, Response $res): void 
     {
+        extract($this->getAcl());
+        
+        if ($isSubAdmin && !in_array('create_blog', $perms)) {
+            $_SESSION['error'] = "Access Denied: Missing 'Create Blog' permission.";
+            header("Location: /posts");
+            exit;
+        }
+
         $title = trim($_POST['title'] ?? '');
         $categoryId = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
         $status = $_POST['status'] ?? 'published';
@@ -170,15 +212,22 @@ class BlogController extends Controller
         exit;
     }
 
-    // 6. Show Edit Post Form
     public function edit(Request $req, Response $res): void 
     {
+        extract($this->getAcl());
+        
+        if ($isSubAdmin && !in_array('edit_blog', $perms)) {
+            $_SESSION['error'] = "Access Denied: Missing 'Edit Blog' permission.";
+            header("Location: /posts");
+            exit;
+        }
+
         $db = Connection::getInstance();
         $postId = $_GET['id'] ?? 0;
         $userId = $_SESSION['user']['id'] ?? 0;
-        $isAdmin = ($_SESSION['user']['role'] ?? 'user') === 'admin';
+        $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('edit_blog', $perms));
 
-        if ($isAdmin) {
+        if ($hasGlobalAccess) {
             $stmt = $db->prepare("SELECT * FROM posts WHERE id = :id");
             $stmt->execute([':id' => $postId]);
         } else {
@@ -207,20 +256,27 @@ class BlogController extends Controller
         $res->html($html);
     }
 
-    // 7. Process Post Update
     public function update(Request $req, Response $res): void 
     {
+        extract($this->getAcl());
+        
+        if ($isSubAdmin && !in_array('edit_blog', $perms)) {
+            $_SESSION['error'] = "Access Denied: Missing 'Edit Blog' permission.";
+            header("Location: /posts");
+            exit;
+        }
+
         $postId = $_POST['post_id'] ?? 0;
         $title = trim($_POST['title'] ?? '');
         $categoryId = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
         $status = $_POST['status'] ?? 'published';
         $content = trim($_POST['content'] ?? '');
         $userId = $_SESSION['user']['id'] ?? 0;
-        $isAdmin = ($_SESSION['user']['role'] ?? 'user') === 'admin';
-
+        
         $db = Connection::getInstance();
+        $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('edit_blog', $perms));
 
-        if ($isAdmin) {
+        if ($hasGlobalAccess) {
             $stmt = $db->prepare("UPDATE posts SET title = :title, category_id = :category_id, content = :content, status = :status WHERE id = :post_id");
             $stmt->execute([':title' => $title, ':category_id' => $categoryId, ':content' => $content, ':status' => $status, ':post_id' => $postId]);
         } else {
