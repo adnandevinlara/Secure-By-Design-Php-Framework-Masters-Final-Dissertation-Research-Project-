@@ -26,7 +26,7 @@ $router = new \Core\Http\Router($request, $response);
 // Enforce CSRF token validation on all state-changing requests
 \Core\Middleware\CsrfMiddleware::handle();
 
-// Public Frontend Routes
+// Public Homepage / Blog Listing
 $router->get('/', function (\Core\Http\Request $req, \Core\Http\Response $res) {
     $controller = new \App\Controllers\HomeController();
     $controller->index($req, $res);
@@ -184,8 +184,8 @@ $router->post('/test-post', function (\Core\Http\Request $req, \Core\Http\Respon
     $res->html("Success! The CSRF token was perfectly valid and the request was securely processed.");
 });
 
-// Authentication Routes
 $router->get('/register', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\GuestMiddleware::handle();
     $controller = new \App\Controllers\AuthController();
     $controller->showRegister($req, $res);
 });
@@ -195,11 +195,12 @@ $router->post('/register', function (\Core\Http\Request $req, \Core\Http\Respons
     $controller->processRegister($req, $res);
 });
 
+// Public Auth Routes (Blocked for logged-in users)
 $router->get('/login', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\GuestMiddleware::handle();
     $controller = new \App\Controllers\AuthController();
     $controller->showLogin($req, $res);
 });
-
 // Secure Blog Post Submission Route
 $router->post('/post/store', function (\Core\Http\Request $req, \Core\Http\Response $res) {
     $controller = new \App\Controllers\BlogController();
@@ -290,17 +291,39 @@ $router->post('/users/delete', function (\Core\Http\Request $req, \Core\Http\Res
     $controller->delete($req, $res);
 });
 
-// Categories Management
+// 1. View Categories List
 $router->get('/categories', function (\Core\Http\Request $req, \Core\Http\Response $res) {
-    \Core\Middleware\AuthMiddleware::handle(); 
+    \Core\Middleware\AuthMiddleware::handle();
     $controller = new \App\Controllers\CategoryController();
     $controller->index($req, $res);
 });
 
-$router->post('/categories/store', function (\Core\Http\Request $req, \Core\Http\Response $res) {
-    \Core\Middleware\AuthMiddleware::handle(); 
+// 2. Show "Create Category" Form
+$router->get('/category/create', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    $controller = new \App\Controllers\CategoryController();
+    $controller->create($req, $res);
+});
+
+// 3. Process New Category Submission
+$router->post('/category/store', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
     $controller = new \App\Controllers\CategoryController();
     $controller->store($req, $res);
+});
+
+// 4. Toggle Category Status (Hide/Show)
+$router->post('/category/status', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    $controller = new \App\Controllers\CategoryController();
+    $controller->updateStatus($req, $res);
+});
+
+// 5. Delete Category
+$router->post('/category/delete', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    $controller = new \App\Controllers\CategoryController();
+    $controller->delete($req, $res);
 });
 
 // Comments Management & Simulation
@@ -437,6 +460,30 @@ $router->post('/change-password/process', function (\Core\Http\Request $req, \Co
     \Core\Middleware\AuthMiddleware::handle();
     $controller = new \App\Controllers\AuthController();
     $controller->processChangePassword($req, $res);
+});
+
+
+// Comments Moderation Routes
+$router->get('/comments', function ($req, $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    (new \App\Controllers\CommentController())->index($req, $res);
+});
+$router->post('/comments/status', function ($req, $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    (new \App\Controllers\CommentController())->updateStatus($req, $res);
+});
+$router->post('/comments/delete', function ($req, $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    (new \App\Controllers\CommentController())->delete($req, $res);
+});
+$router->post('/comment/reply', function ($req, $res) {
+    \Core\Middleware\AuthMiddleware::handle();
+    (new \App\Controllers\CommentController())->reply($req, $res);
+});
+
+// Public Comment Submission (For the frontend post_details.php)
+$router->post('/comment/store', function ($req, $res) {
+    (new \App\Controllers\CommentController())->store($req, $res);
 });
 
 

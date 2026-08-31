@@ -71,9 +71,10 @@
                                         <span class="badge bg-warning-subtle text-warning py-1 px-2">Pending</span>
                                     <?php endif; ?>
                                 </td>
+                                <!-- Truncated Content -->
                                 <td class="text-truncate" style="max-width: 150px;"><?= htmlspecialchars($comment['post_title'], ENT_QUOTES, 'UTF-8') ?></td>
                                 <td class="text-truncate" style="max-width: 200px;"><?= htmlspecialchars($comment['content'], ENT_QUOTES, 'UTF-8') ?></td>
-                                <td><?= $comment['is_replied'] ? '<span class="text-success">Yes</span>' : '<span class="text-muted">No</span>' ?></td>
+                                <td><?= $comment['is_replied'] ? '<span class="text-success fw-bold">Yes</span>' : '<span class="text-muted">No</span>' ?></td>
                                 <td><?= htmlspecialchars(date('M j, Y', strtotime($comment['created_at'])), ENT_QUOTES, 'UTF-8') ?></td>
                                 <td>
                                     <div class="dropdown">
@@ -81,18 +82,19 @@
                                             Actions <i class="mdi mdi-chevron-down"></i>
                                         </button>
                                         <ul class="dropdown-menu">
+                                            <!-- NEW: View Modal Trigger (Adnan's Point #17) -->
                                             <li>
-                                                <a class="dropdown-item text-primary" href="#" data-bs-toggle="modal" data-bs-target="#replyModal<?= $comment['id'] ?>">
-                                                    <i class="bx bx-reply me-1"></i> Give Reply
+                                                <a class="dropdown-item text-primary fw-medium" href="#" data-bs-toggle="modal" data-bs-target="#viewModal<?= $comment['id'] ?>">
+                                                    <i class="bx bx-expand-alt me-1"></i> View & Reply
                                                 </a>
                                             </li>
+                                            <li><hr class="dropdown-divider"></li>
                                             <li>
                                                 <a class="dropdown-item <?= $comment['status'] === 'approved' ? 'text-warning' : 'text-success' ?>" href="#" data-bs-toggle="modal" data-bs-target="#statusModal<?= $comment['id'] ?>">
                                                     <i class="bx <?= $comment['status'] === 'approved' ? 'bx-hide' : 'bx-show' ?> me-1"></i> 
                                                     <?= $comment['status'] === 'approved' ? 'Hide (Set Pending)' : 'Show (Approve)' ?>
                                                 </a>
                                             </li>
-                                            <li><hr class="dropdown-divider"></li>
                                             <li>
                                                 <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal<?= $comment['id'] ?>">
                                                     <i class="bx bx-trash me-1"></i> Delete
@@ -103,7 +105,65 @@
                                 </td>
                             </tr>
 
-                            <!-- Status Modal -->
+                            <!-- ============================================== -->
+                            <!-- VIEW & REPLY MODAL (Fulfills Adnan's Point #17)-->
+                            <!-- ============================================== -->
+                            <div class="modal fade" id="viewModal<?= $comment['id'] ?>" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-light border-bottom">
+                                            <h5 class="modal-title fw-bold"><i class="bx bx-message-rounded-dots text-primary me-2"></i>Comment Details</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        
+                                        <div class="modal-body text-wrap p-4">
+                                            <div class="row mb-4">
+                                                <div class="col-md-6">
+                                                    <span class="fw-bold text-muted small text-uppercase">Post Title</span>
+                                                    <h6 class="fw-bold mt-1 text-primary"><?= htmlspecialchars($comment['post_title'], ENT_QUOTES, 'UTF-8') ?></h6>
+                                                </div>
+                                                <div class="col-md-6 text-md-end">
+                                                    <span class="fw-bold text-muted small text-uppercase">Submission Date</span>
+                                                    <p class="mb-0 fw-medium"><?= htmlspecialchars(date('F j, Y, g:i a', strtotime($comment['created_at'])), ENT_QUOTES, 'UTF-8') ?></p>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-4 bg-light p-4 rounded border-start border-primary border-4 shadow-sm">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="avatar-sm rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold me-2">
+                                                        <?= strtoupper(substr(htmlspecialchars($comment['author']), 0, 1)) ?>
+                                                    </div>
+                                                    <span class="fw-bold fs-5"><?= htmlspecialchars($comment['author'], ENT_QUOTES, 'UTF-8') ?> wrote:</span>
+                                                </div>
+                                                <p class="mb-0 fs-5 text-secondary" style="line-height: 1.6;">
+                                                    <?= nl2br(htmlspecialchars($comment['content'], ENT_QUOTES, 'UTF-8')) ?>
+                                                </p>
+                                            </div>
+                                            
+                                            <hr class="my-4">
+                                            
+                                            <!-- The Reply Form -->
+                                            <form action="/comment/reply" method="POST">
+                                                <?= \Core\Security\Csrf::getFormField() ?? '' ?>
+                                                <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
+                                                <input type="hidden" name="post_id" value="<?= $comment['post_id'] ?>">
+                                                
+                                                <div class="mb-3 text-start">
+                                                    <label class="form-label fw-bold">Write a Reply</label>
+                                                    <textarea name="reply_content" class="form-control bg-light" rows="4" required placeholder="Type your response to <?= htmlspecialchars($comment['author'], ENT_QUOTES, 'UTF-8') ?> here..."></textarea>
+                                                </div>
+                                                
+                                                <div class="text-end mt-4">
+                                                    <button type="button" class="btn btn-outline-secondary px-4 me-2" data-bs-dismiss="modal">Close Window</button>
+                                                    <button type="submit" class="btn btn-primary px-4"><i class="bx bx-send me-1"></i> Send Reply</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Status Modal (Unchanged) -->
                             <div class="modal fade" id="statusModal<?= $comment['id'] ?>" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content">
@@ -127,7 +187,7 @@
                                 </div>
                             </div>
 
-                            <!-- Delete Modal -->
+                            <!-- Delete Modal (Unchanged) -->
                             <div class="modal fade" id="deleteModal<?= $comment['id'] ?>" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered">
                                     <div class="modal-content">
@@ -149,33 +209,7 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Reply Modal (Placeholder for next phase) -->
-                            <div class="modal fade" id="replyModal<?= $comment['id'] ?>" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Reply to <?= htmlspecialchars($comment['author'], ENT_QUOTES) ?></h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <form action="/comment/reply" method="POST">
-                                            <?= \Core\Security\Csrf::getFormField() ?? '' ?>
-                                            <input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
-                                            <input type="hidden" name="post_id" value="<?= $comment['post_id'] ?>">
-                                            
-                                            <div class="mb-3 text-start">
-                                                <label class="form-label fw-bold">Your Reply</label>
-                                                <textarea name="reply_content" class="form-control" rows="3" required placeholder="Type your reply here..."></textarea>
-                                            </div>
-                                            
-                                            <div class="text-end">
-                                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-primary"><i class="bx bx-send me-1"></i> Post Reply</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
+                            
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>

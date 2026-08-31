@@ -22,7 +22,7 @@ class Connection
                 self::$instance->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 self::$instance->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
                 
-                // Automatically create the users table
+                // 1. Create the USERS table
                 self::$instance->exec("CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT NOT NULL,
@@ -34,20 +34,38 @@ class Connection
                 
                 try {
                     self::$instance->exec("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT NULL");
-                } catch (\PDOException $e) {
-                    // Column already exists, continue normally without crashing
-                }
+                } catch (\PDOException $e) {}
 
-                // Automatically create the categories table
+                // 2. Create the CATEGORIES table
                 self::$instance->exec("CREATE TABLE IF NOT EXISTS categories (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
 
-                // self::$instance->exec("DROP TABLE IF EXISTS comments");
+                try {
+                    self::$instance->exec("ALTER TABLE categories ADD COLUMN status TEXT DEFAULT 'show'");
+                } catch (\PDOException $e) {}
 
-                // Automatically create the updated comments table (with Adnan's new fields)
+                // Create SECURITY_LOGS table for the Admin Dashboard
+                self::$instance->exec("CREATE TABLE IF NOT EXISTS security_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_type TEXT NOT NULL,
+                    ip_address TEXT NOT NULL,
+                    user TEXT NOT NULL,
+                    details TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )");
+
+                try {
+                    self::$instance->exec("ALTER TABLE security_logs ADD COLUMN user TEXT DEFAULT 'Unknown'");
+                } catch (\PDOException $e) {}
+
+                try {
+                    self::$instance->exec("ALTER TABLE security_logs ADD COLUMN details TEXT NULL");
+                } catch (\PDOException $e) {}
+
+                // 3. Create the updated COMMENTS table
                 self::$instance->exec("CREATE TABLE IF NOT EXISTS comments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     post_id INTEGER NOT NULL,
@@ -59,7 +77,7 @@ class Connection
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
 
-                // 3. Create the POSTS table for the CMS
+                // 4. Create the POSTS table (Now includes banner_image natively)
                 self::$instance->exec("CREATE TABLE IF NOT EXISTS posts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT NOT NULL,
@@ -67,10 +85,20 @@ class Connection
                     content TEXT NOT NULL,
                     author_id INTEGER NOT NULL,
                     status TEXT DEFAULT 'published',
+                    banner_image TEXT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
 
-                // 4. Create the PASSWORD RESETS table for OTPs
+                // Safely attempt to add the new columns to existing SQLite databases
+                try {
+                    self::$instance->exec("ALTER TABLE posts ADD COLUMN status TEXT DEFAULT 'published'");
+                } catch (\PDOException $e) {}
+
+                try {
+                    self::$instance->exec("ALTER TABLE posts ADD COLUMN banner_image TEXT NULL");
+                } catch (\PDOException $e) {}
+
+                // 5. Create the PASSWORD RESETS table
                 self::$instance->exec("CREATE TABLE IF NOT EXISTS password_resets (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     email TEXT NOT NULL,

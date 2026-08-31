@@ -18,10 +18,11 @@ class DashboardController
     public function index(Request $req, Response $res): void
     {
         $db = Connection::getInstance();
-        
+
         // Normalize the role text
         $userRole = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
         $userId = $_SESSION['user']['id'] ?? 0;
+        $username = $_SESSION['user']['username'] ?? 'User';
 
         // If the user is an Admin or Sub-Admin, load the main admin dashboard with ACL
         if (in_array($userRole, ['admin', 'administrator', 'super admin', 'super_admin', 'sub_admin'])) {
@@ -29,12 +30,10 @@ class DashboardController
             return;
         }
 
-        // --- REGISTERED USER DASHBOARD LOGIC (Remains unchanged for normal users) ---
-        
-        // 1. Fetch User Stats
-        $stmtPosts = $db->prepare("SELECT COUNT(*) FROM posts WHERE author_id = ?");
-        $stmtPosts->execute([$userId]);
-        $userPosts = $stmtPosts->fetchColumn();
+        // --- REGISTERED USER DASHBOARD LOGIC ---
+
+        // 1. Fetch User Stats (Data Isolated to their own posts)
+        $userPosts = $db->query("SELECT COUNT(*) FROM posts WHERE author_id = $userId")->fetchColumn();
 
         $stmtComments = $db->prepare("SELECT COUNT(*) FROM comments WHERE post_id IN (SELECT id FROM posts WHERE author_id = ?)");
         $stmtComments->execute([$userId]);
@@ -48,14 +47,7 @@ class DashboardController
         $stmtPending->execute([$userId]);
         $pendingComments = $stmtPending->fetchColumn();
 
-        $statValues = [
-            'user_posts' => $userPosts,
-            'user_comments' => $userComments,
-            'approved_comments' => $approvedComments,
-            'pending_comments' => $pendingComments
-        ];
-
-        // 2. Fetch Pending Comments for the Table
+        // 2. Fetch Pending Comments for the Recent Table
         $stmt = $db->prepare("
             SELECT c.*, p.title as post_title 
             FROM comments c 
@@ -64,36 +56,53 @@ class DashboardController
             ORDER BY c.created_at DESC LIMIT 5
         ");
         $stmt->execute([$userId]);
-        $pending_comments = $stmt->fetchAll();
+        $recent_comments = $stmt->fetchAll();
 
-        // 3. Dynamic Chart Data
-        $chart_data = [0, 0, 0, 0, 0, 0, 0];
-
+        // 3. Dynamic Chart Data (Comments received over the last 7 days)
         $stmtChart = $db->prepare("
-            SELECT strftime('%w', c.created_at) as day_of_week, COUNT(*) as count 
+            SELECT date(c.created_at) as comment_date, COUNT(*) as count 
             FROM comments c 
             JOIN posts p ON c.post_id = p.id 
-            WHERE p.author_id = ? 
-              AND c.created_at >= date('now', 'weekday 0', '-7 days')
-            GROUP BY day_of_week
+            WHERE p.author_id = ? AND c.created_at >= date('now', '-7 days')
+            GROUP BY date(c.created_at)
+            ORDER BY comment_date ASC
         ");
         $stmtChart->execute([$userId]);
         $chartResults = $stmtChart->fetchAll();
 
-        foreach ($chartResults as $row) {
-            $dayIndex = (int)$row['day_of_week'];
-            $map = [1 => 0, 2 => 1, 3 => 2, 4 => 3, 5 => 4, 6 => 5, 0 => 6];
-            if (isset($map[$dayIndex])) {
-                $chart_data[$map[$dayIndex]] = (int)$row['count'];
+        // Format dates for Chart.js
+        $chartLabels = [];
+        $chartData = [];
+        
+        // Pre-fill the last 7 days with 0 so the chart always looks full
+        for ($i = 6; $i >= 0; $i--) {
+            $dateString = date('Y-m-d', strtotime("-$i days"));
+            $chartLabels[] = date('M d', strtotime($dateString));
+            
+            // Find if we have data for this date
+            $count = 0;
+            foreach ($chartResults as $row) {
+                if ($row['comment_date'] === $dateString) {
+                    $count = (int)$row['count'];
+                    break;
+                }
             }
+            $chartData[] = $count;
         }
 
         $html = $this->view->render('user_dashboard', [
             'title' => 'My Dashboard',
-            'user' => $_SESSION['user'] ?? ['username' => 'User'],
-            'stats' => $statValues,
-            'pending_comments' => $pending_comments,
-            'chart_data' => $chart_data
+            'username' => $username,
+            'stats' => [
+                'user_posts' => $userPosts,
+                'user_comments' => $userComments,
+                'approved_comments' => $approvedComments,
+                'pending_comments' => $pendingComments,
+                'account_status' => 'ACTIVE'
+            ],
+            'pending_comments' => $recent_comments,
+            'chartLabels' => json_encode($chartLabels),
+            'chartData' => json_encode($chartData)
         ]);
 
         $res->html($html);

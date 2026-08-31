@@ -23,7 +23,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">Username <span class="text-danger">*</span></label>
                         <input type="text" name="username" class="form-control form-control-lg" required minlength="3" placeholder="Choose a username">
-                        <div class="invalid-feedback">Username is required.</div>
+                        <div class="invalid-feedback">Username is required (min 3 characters).</div>
                     </div>
 
                     <div class="mb-3">
@@ -45,7 +45,7 @@
                     </div>
                     
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">Create Account Securely</button>
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold">Create Account Securely</button>
                     </div>
                 </form>
                 
@@ -75,6 +75,7 @@
 </script>
 
 <?php 
+// FIX: Using the public layout instead of the dashboard main layout!
 $content = ob_get_clean(); 
-require 'layouts/main.php'; 
+require 'layouts/public.php'; 
 ?>

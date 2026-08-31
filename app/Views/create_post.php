@@ -54,8 +54,8 @@
 
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
-                <!-- 'needs-validation' triggers Bootstrap's client-side checks -->
-                <form method="POST" action="/post/store" class="needs-validation" novalidate>
+                <!-- CRITICAL: enctype="multipart/form-data" added for secure file uploads -->
+                <form method="POST" action="/post/store" class="needs-validation" enctype="multipart/form-data" novalidate>
                     <?= \Core\Security\Csrf::getFormField() ?? '<input type="hidden" name="csrf_token" value="test">' ?>
                     
                     <div class="row">
@@ -67,7 +67,7 @@
                         </div>
 
                         <!-- Category Dropdown -->
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="category_id" class="form-label fw-bold">Category</label>
                             <select class="form-select" id="category_id" name="category_id" required>
                                 <option value="" selected disabled>Select a category...</option>
@@ -80,14 +80,21 @@
                             <div class="invalid-feedback">Please select a category for this post.</div>
                         </div>
 
-                        <!-- NEW: Status Show/Hide Dropdown -->
-                        <div class="col-md-6 mb-3">
+                        <!-- Status Show/Hide Dropdown -->
+                        <div class="col-md-4 mb-3">
                             <label for="status" class="form-label fw-bold">Status <span class="text-danger">*</span></label>
                             <select name="status" id="status" class="form-select" required>
                                 <option value="published">Show (Publish to public blog)</option>
                                 <option value="hidden">Hide (Save as draft / Hidden)</option>
                             </select>
                             <div class="invalid-feedback">Please select a visibility status.</div>
+                        </div>
+
+                        <!-- Post Banner (Image) Upload -->
+                        <div class="col-md-4 mb-3">
+                            <label for="banner_image" class="form-label fw-bold">Post Banner (Image)</label>
+                            <input type="file" class="form-control" id="banner_image" name="banner_image" accept="image/jpeg, image/png, image/webp">
+                            <div class="form-text">Optional. Recommended size: 1200x600px.</div>
                         </div>
                     </div>
 
@@ -110,7 +117,6 @@
 
 <!-- Bootstrap Client-Side Validation & XSS Trap Script -->
 <script>
-    // Enable Bootstrap validation styles
     (function () {
         'use strict'
         var forms = document.querySelectorAll('.needs-validation')

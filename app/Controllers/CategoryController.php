@@ -5,37 +5,63 @@ namespace App\Controllers;
 use Core\Http\Controller;
 use Core\Http\Request;
 use Core\Http\Response;
+use Core\Database\Connection;
 
 class CategoryController extends Controller
 {
-    // 1. Show the Categories Page
+    // 1. Listing Page (READ) - Points to categories/index.php
     public function index(Request $req, Response $res): void
     {
-        $db = \Core\Database\Connection::getInstance();
+        $db = Connection::getInstance();
         
-        // Let's assume your categories table has id, name, and created_at columns
-        // Adjust if your database schema uses different column names!
-        $stmt = $db->query("SELECT * FROM categories ORDER BY created_at DESC");
+        $name = $_GET['name'] ?? '';
+        $status = $_GET['status'] ?? '';
+
+        $query = "SELECT * FROM categories WHERE 1=1";
+        $params = [];
+
+        if (!empty($name)) {
+            $query .= " AND name LIKE :name";
+            $params[':name'] = "%$name%";
+        }
+        if (!empty($status)) {
+            $query .= " AND status = :status";
+            $params[':status'] = $status;
+        }
+        $query .= " ORDER BY created_at DESC";
+        
+        $stmt = $db->prepare($query);
+        $stmt->execute($params);
         $categories = $stmt->fetchAll();
 
-        $html = $this->view->render('categories', [
+        $html = $this->view->render('categories/index', [
             'title' => 'Secure CMS | Categories',
-            'categories' => $categories
+            'categories' => $categories,
+            'filters' => ['name' => $name, 'status' => $status]
         ]);
         $res->html($html);
     }
 
-    // 2. Handle New Category Submission (With the Trap)
+    // 2. Separate Form Page (CREATE) - Fulfills Point #19
+    public function create(Request $req, Response $res): void
+    {
+        $html = $this->view->render('categories/create', [
+            'title' => 'Secure CMS | Create Category'
+        ]);
+        $res->html($html);
+    }
+
+    // 3. Handle New Category Submission (Keeping your Trap!)
     public function store(Request $req, Response $res): void
     {
         $name = trim($_POST['name'] ?? '');
+        $status = $_POST['status'] ?? 'show'; // New status field from Point #18
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
         $user = $_SESSION['user']['username'] ?? 'Guest';
 
-        // --- LAYER 1: SERVER-SIDE VALIDATION ---
         if (empty($name)) {
             $_SESSION['error'] = "Category name is required.";
-            header("Location: /categories");
+            header("Location: /category/create");
             exit;
         }
 
@@ -52,24 +78,63 @@ class CategoryController extends Controller
         }
 
         if ($isMalicious) {
-            $logLine = sprintf("[%s] [CRITICAL] [%s] [IP: %s] [User: %s] [POST /categories/store]\n", 
-                date('c'), $eventType, $ip, $user
-            );
-            file_put_contents(__DIR__ . '/../../logs/security.log', $logLine, FILE_APPEND);
+            // 1. Log to the database for the Admin Dashboard UI
+            $db = Connection::getInstance();
+            $stmt = $db->prepare("INSERT INTO security_logs (event_type, ip_address, user, details) VALUES (:event_type, :ip, :user, :details)");
+            $stmt->execute([
+                ':event_type' => $eventType,
+                ':ip' => $ip,
+                ':user' => $user,
+                ':details' => 'Blocked payload on POST /category/store'
+            ]);
+
+            // 2. Fallback flat-file log (Optional, good for server admins)
+            $logLine = sprintf("[%s] [CRITICAL] [%s] [IP: %s] [User: %s]\n", date('c'), $eventType, $ip, $user);
+            @file_put_contents(__DIR__ . '/../../logs/security.log', $logLine, FILE_APPEND);
 
             $_SESSION['error'] = "SECURITY INTERVENTION: Malicious payload detected. Action logged.";
-            header("Location: /categories");
+            header("Location: /category/create");
             exit;
         }
 
         // --- SAFE EXECUTION ---
-        $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
-        
-        $db = \Core\Database\Connection::getInstance();
-        $stmt = $db->prepare("INSERT INTO categories (name) VALUES (?)");
-        $stmt->execute([$safeName]);
+        $db = Connection::getInstance();
+        $stmt = $db->prepare("INSERT INTO categories (name, status) VALUES (:name, :status)");
+        $stmt->execute([
+            ':name' => htmlspecialchars($name, ENT_QUOTES, 'UTF-8'),
+            ':status' => $status
+        ]);
         
         $_SESSION['success'] = "Category created securely!";
+        header("Location: /categories");
+        exit;
+    }
+
+    // 4. Toggle Status (HIDE/SHOW) - Point #18
+    public function updateStatus(Request $req, Response $res): void
+    {
+        $id = $_POST['category_id'] ?? 0;
+        $status = $_POST['status'] ?? 'show';
+
+        $db = Connection::getInstance();
+        $stmt = $db->prepare("UPDATE categories SET status = :status WHERE id = :id");
+        $stmt->execute([':status' => $status, ':id' => $id]);
+
+        $_SESSION['success'] = "Category status updated to " . ucfirst($status) . ".";
+        header("Location: /categories");
+        exit;
+    }
+
+    // 5. Delete Category - Point #18
+    public function delete(Request $req, Response $res): void
+    {
+        $id = $_POST['category_id'] ?? 0;
+        $db = Connection::getInstance();
+        
+        $stmt = $db->prepare("DELETE FROM categories WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+
+        $_SESSION['success'] = "Category permanently deleted.";
         header("Location: /categories");
         exit;
     }

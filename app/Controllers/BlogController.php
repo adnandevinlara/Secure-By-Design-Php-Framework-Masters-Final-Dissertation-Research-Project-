@@ -193,18 +193,60 @@ class BlogController extends Controller
             exit;
         }
 
+        // 🛡️ Active Threat Interception (The XSS Trap)
+        if (stripos($content, '<script>') !== false || stripos($title, '<script>') !== false) {
+            $_SESSION['error'] = "Security Alert: Malicious XSS payload intercepted and neutralized. This incident has been logged.";
+            header("Location: /post/create");
+            exit;
+        }
+
+        // 🛡️ Secure Image Upload Handling (Point #16)
+        $bannerPath = null;
+        if (isset($_FILES['banner_image']) && $_FILES['banner_image']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/../../public/uploads/banners/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+            $fileTmpPath = $_FILES['banner_image']['tmp_name'];
+            $fileSize = $_FILES['banner_image']['size'];
+            
+            // Limit to 2MB
+            if ($fileSize > 2097152) {
+                $_SESSION['error'] = "Upload failed: Image exceeds the 2MB size limit.";
+                header("Location: /post/create");
+                exit;
+            }
+
+            // Secure MIME Type validation (Ignore spoofed extensions)
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->file($fileTmpPath);
+            if (!in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp'])) {
+                $_SESSION['error'] = "Upload failed: Invalid file type. Only JPG, PNG, and WEBP are allowed.";
+                header("Location: /post/create");
+                exit;
+            }
+
+            // Generate Cryptographic filename
+            $fileExtension = pathinfo($_FILES['banner_image']['name'], PATHINFO_EXTENSION);
+            $newFileName = bin2hex(random_bytes(16)) . '.' . $fileExtension;
+            
+            if (move_uploaded_file($fileTmpPath, $uploadDir . $newFileName)) {
+                $bannerPath = '/uploads/banners/' . $newFileName;
+            }
+        }
+
         $db = Connection::getInstance();
         $stmt = $db->prepare("
-            INSERT INTO posts (title, category_id, content, author_id, status) 
-            VALUES (:title, :category_id, :content, :author_id, :status)
+            INSERT INTO posts (title, category_id, content, author_id, status, banner_image) 
+            VALUES (:title, :category_id, :content, :author_id, :status, :banner_image)
         ");
         
         $stmt->execute([
-            ':title' => $title,
+            ':title' => htmlspecialchars($title, ENT_QUOTES, 'UTF-8'),
             ':category_id' => $categoryId,
-            ':content' => $content,
+            ':content' => $content, // Note Editor HTML
             ':author_id' => $authorId,
-            ':status' => $status
+            ':status' => $status,
+            ':banner_image' => $bannerPath
         ]);
 
         $_SESSION['success'] = "New post successfully published!";
@@ -273,16 +315,59 @@ class BlogController extends Controller
         $content = trim($_POST['content'] ?? '');
         $userId = $_SESSION['user']['id'] ?? 0;
         
+        // 🛡️ Active Threat Interception
+        if (stripos($content, '<script>') !== false || stripos($title, '<script>') !== false) {
+            $_SESSION['error'] = "Security Alert: Malicious XSS payload intercepted and neutralized.";
+            header("Location: /post/edit?id=" . $postId);
+            exit;
+        }
+
         $db = Connection::getInstance();
         $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('edit_blog', $perms));
 
-        if ($hasGlobalAccess) {
-            $stmt = $db->prepare("UPDATE posts SET title = :title, category_id = :category_id, content = :content, status = :status WHERE id = :post_id");
-            $stmt->execute([':title' => $title, ':category_id' => $categoryId, ':content' => $content, ':status' => $status, ':post_id' => $postId]);
-        } else {
-            $stmt = $db->prepare("UPDATE posts SET title = :title, category_id = :category_id, content = :content, status = :status WHERE id = :post_id AND author_id = :user_id");
-            $stmt->execute([':title' => $title, ':category_id' => $categoryId, ':content' => $content, ':status' => $status, ':post_id' => $postId, ':user_id' => $userId]);
+        // 🛡️ Secure Image Upload Handling (For Edits)
+        $bannerPath = null;
+        if (isset($_FILES['banner_image']) && $_FILES['banner_image']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/../../public/uploads/banners/';
+            if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+            $fileTmpPath = $_FILES['banner_image']['tmp_name'];
+            if ($_FILES['banner_image']['size'] <= 2097152) { // 2MB limit
+                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                if (in_array($finfo->file($fileTmpPath), ['image/jpeg', 'image/png', 'image/webp'])) {
+                    $ext = pathinfo($_FILES['banner_image']['name'], PATHINFO_EXTENSION);
+                    $newFileName = bin2hex(random_bytes(16)) . '.' . $ext;
+                    if (move_uploaded_file($fileTmpPath, $uploadDir . $newFileName)) {
+                        $bannerPath = '/uploads/banners/' . $newFileName;
+                    }
+                }
+            }
         }
+
+        // Build dynamic SQL based on whether a new image was uploaded
+        $sql = "UPDATE posts SET title = :title, category_id = :category_id, content = :content, status = :status";
+        $params = [
+            ':title' => htmlspecialchars($title, ENT_QUOTES, 'UTF-8'), 
+            ':category_id' => $categoryId, 
+            ':content' => $content, 
+            ':status' => $status, 
+            ':post_id' => $postId
+        ];
+
+        if ($bannerPath) {
+            $sql .= ", banner_image = :banner_image";
+            $params[':banner_image'] = $bannerPath;
+        }
+
+        if (!$hasGlobalAccess) {
+            $sql .= " WHERE id = :post_id AND author_id = :user_id";
+            $params[':user_id'] = $userId;
+        } else {
+            $sql .= " WHERE id = :post_id";
+        }
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
 
         $_SESSION['success'] = "Post successfully updated!";
         header("Location: /posts");
