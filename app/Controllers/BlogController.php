@@ -195,6 +195,20 @@ class BlogController extends Controller
 
         // 🛡️ Active Threat Interception (The XSS Trap)
         if (stripos($content, '<script>') !== false || stripos($title, '<script>') !== false) {
+            // Log to database for the Admin Dashboard Security Events feed
+            $db = \Core\Database\Connection::getInstance();
+            $stmt = $db->prepare("INSERT INTO security_logs (event_type, ip_address, user, details, severity, request_url, description, timestamp) VALUES (:event_type, :ip, :user, :details, :severity, :request_url, :description, :timestamp)");
+            $stmt->execute([
+                ':event_type' => 'XSS_PAYLOAD_DETECTED',
+                ':ip' => $_SERVER['REMOTE_ADDR'] ?? 'Unknown',
+                ':user' => $_SESSION['user']['username'] ?? 'Guest',
+                ':details' => 'Blocked malicious script payload on Post submission',
+                ':severity' => 'CRITICAL',
+                ':request_url' => $_SERVER['REQUEST_URI'] ?? '/post/store',
+                ':description' => 'Blocked malicious script payload on Post submission',
+                ':timestamp' => date('Y-m-d H:i:s') // <--- Manually passing the exact time!
+            ]);
+
             $_SESSION['error'] = "Security Alert: Malicious XSS payload intercepted and neutralized. This incident has been logged.";
             header("Location: /post/create");
             exit;
@@ -317,7 +331,21 @@ class BlogController extends Controller
         
         // 🛡️ Active Threat Interception
         if (stripos($content, '<script>') !== false || stripos($title, '<script>') !== false) {
-            $_SESSION['error'] = "Security Alert: Malicious XSS payload intercepted and neutralized.";
+            // Log to database for the Admin Dashboard Security Events feed
+            $db = \Core\Database\Connection::getInstance();
+            $stmt = $db->prepare("INSERT INTO security_logs (event_type, ip_address, user, details, severity, request_url, description, timestamp) VALUES (:event_type, :ip, :user, :details, :severity, :request_url, :description, :timestamp)");
+            $stmt->execute([
+                ':event_type' => 'XSS_PAYLOAD_DETECTED',
+                ':ip' => $_SERVER['REMOTE_ADDR'] ?? 'Unknown',
+                ':user' => $_SESSION['user']['username'] ?? 'Guest',
+                ':details' => 'Blocked malicious script payload on Post update',
+                ':severity' => 'CRITICAL',
+                ':request_url' => $_SERVER['REQUEST_URI'] ?? '/post/update',
+                ':description' => 'Blocked malicious script payload on Post update',
+                ':timestamp' => date('Y-m-d H:i:s') // <--- Manually passing the exact time!
+            ]);
+
+            $_SESSION['error'] = "Security Alert: Malicious XSS payload intercepted and neutralized. This incident has been logged.";
             header("Location: /post/edit?id=" . $postId);
             exit;
         }
