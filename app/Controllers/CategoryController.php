@@ -17,7 +17,7 @@ class CategoryController extends Controller
         $name = $_GET['name'] ?? '';
         $status = $_GET['status'] ?? '';
 
-        $query = "SELECT * FROM categories WHERE 1=1";
+        $query = "SELECT * FROM categories WHERE is_deleted = 0";
         $params = [];
 
         if (!empty($name)) {
@@ -78,14 +78,18 @@ class CategoryController extends Controller
         }
 
         if ($isMalicious) {
-            // 1. Log to the database for the Admin Dashboard UI
+            // 1. Log to the database for the Admin Dashboard UI (Updated with required columns)
             $db = Connection::getInstance();
-            $stmt = $db->prepare("INSERT INTO security_logs (event_type, ip_address, user, details) VALUES (:event_type, :ip, :user, :details)");
+            $stmt = $db->prepare("INSERT INTO security_logs (event_type, ip_address, user, details, severity, request_url, description, timestamp) VALUES (:event_type, :ip, :user, :details, :severity, :request_url, :description, :timestamp)");
             $stmt->execute([
                 ':event_type' => $eventType,
                 ':ip' => $ip,
                 ':user' => $user,
-                ':details' => 'Blocked payload on POST /category/store'
+                ':details' => 'Blocked payload on POST /category/store',
+                ':severity' => 'CRITICAL',
+                ':request_url' => $_SERVER['REQUEST_URI'] ?? '/category/store',
+                ':description' => 'Blocked malicious payload on Category creation',
+                ':timestamp' => date('Y-m-d H:i:s')
             ]);
 
             // 2. Fallback flat-file log (Optional, good for server admins)
@@ -125,16 +129,17 @@ class CategoryController extends Controller
         exit;
     }
 
-    // 5. Delete Category - Point #18
+    // 5. Delete Category - Point #27 (Soft Delete)
     public function delete(Request $req, Response $res): void
     {
         $id = $_POST['category_id'] ?? 0;
         $db = Connection::getInstance();
         
-        $stmt = $db->prepare("DELETE FROM categories WHERE id = :id");
+        // 🆕 UPDATE the is_deleted flag instead of dropping the row
+        $stmt = $db->prepare("UPDATE categories SET is_deleted = 1 WHERE id = :id");
         $stmt->execute([':id' => $id]);
 
-        $_SESSION['success'] = "Category permanently deleted.";
+        $_SESSION['success'] = "Category deleted successfully.";
         header("Location: /categories");
         exit;
     }

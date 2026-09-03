@@ -59,14 +59,14 @@
                     <?= \Core\Security\Csrf::getFormField() ?? '<input type="hidden" name="csrf_token" value="test">' ?>
                     
                     <div class="row">
-                        <!-- Post Title -->
+                        <!-- Post Title (Full width) -->
                         <div class="col-md-12 mb-3">
                             <label for="title" class="form-label fw-bold">Post Title <span class="text-danger">*</span></label>
                             <input type="text" class="form-control form-control-lg" id="title" name="title" required minlength="5" placeholder="Enter an engaging title...">
                             <div class="invalid-feedback">Title is required and must be at least 5 characters long.</div>
                         </div>
 
-                        <!-- Category Dropdown -->
+                        <!-- Category Dropdown (4 columns) -->
                         <div class="col-md-4 mb-3">
                             <label for="category_id" class="form-label fw-bold">Category</label>
                             <select class="form-select" id="category_id" name="category_id" required>
@@ -80,21 +80,27 @@
                             <div class="invalid-feedback">Please select a category for this post.</div>
                         </div>
 
-                        <!-- Status Show/Hide Dropdown -->
+                        <!-- Post Status Field (4 columns) using Radio Buttons to bypass JS -->
                         <div class="col-md-4 mb-3">
-                            <label for="status" class="form-label fw-bold">Status <span class="text-danger">*</span></label>
-                            <select name="status" id="status" class="form-select" required>
-                                <option value="published">Show (Publish to public blog)</option>
-                                <option value="hidden">Hide (Save as draft / Hidden)</option>
-                            </select>
-                            <div class="invalid-feedback">Please select a visibility status.</div>
+                            <label class="form-label fw-bold d-block">Post Status <span class="text-danger">*</span></label>
+                            
+                            <div class="form-check form-check-inline mt-2">
+                                <input class="form-check-input" type="radio" name="status" id="status_published" value="published" checked>
+                                <label class="form-check-label" for="status_published">Published</label>
+                            </div>
+                            <div class="form-check form-check-inline mt-2">
+                                <input class="form-check-input" type="radio" name="status" id="status_draft" value="draft">
+                                <label class="form-check-label" for="status_draft">Draft</label>
+                            </div>
+                            
+                            <div class="form-text text-muted small mt-1">Drafts are hidden from public.</div>
                         </div>
 
-                        <!-- Post Banner (Image) Upload -->
+                        <!-- Post Banner (Image) Upload (4 columns) -->
                         <div class="col-md-4 mb-3">
                             <label for="banner_image" class="form-label fw-bold">Post Banner (Image)</label>
                             <input type="file" class="form-control" id="banner_image" name="banner_image" accept="image/jpeg, image/png, image/webp">
-                            <div class="form-text">Optional. Recommended size: 1200x600px.</div>
+                            <div class="form-text text-muted small">Optional. Recommended size: 1200x600px.</div>
                         </div>
                     </div>
 

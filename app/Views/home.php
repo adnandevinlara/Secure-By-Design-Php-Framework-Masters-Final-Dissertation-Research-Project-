@@ -14,10 +14,29 @@
             <?php foreach ($posts as $post): ?>
                 <div class="col-md-6 mb-4">
                     <div class="card h-100 shadow-sm border-0">
-                        <!-- Placeholder for Post Banner (Getting ready for Point #16!) -->
-                        <div class="bg-light text-center py-5 rounded-top" style="height: 180px;">
-                            <i class="bx bx-image text-muted" style="font-size: 4rem;"></i>
-                        </div>
+                        
+                        <!-- NEW: Dynamic Banner Image Display (With Content Fallback) -->
+                        <?php 
+                        $displayImage = $post['banner_image'] ?? null;
+                        
+                        // If no banner was uploaded, extract the first image from the text editor content
+                        if (empty($displayImage)) {
+                            preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $post['content'] ?? '', $matches);
+                            $displayImage = $matches[1] ?? null;
+                        }
+                        ?>
+                        
+                        <?php if (!empty($displayImage)): ?>
+                            <img src="<?= htmlspecialchars($displayImage, ENT_QUOTES, 'UTF-8') ?>" 
+                                 class="card-img-top border-bottom" 
+                                 alt="<?= htmlspecialchars($post['title'], ENT_QUOTES, 'UTF-8') ?>" 
+                                 style="height: 180px; object-fit: cover; width: 100%;">
+                        <?php else: ?>
+                            <!-- Fallback Placeholder -->
+                            <div class="bg-light text-center d-flex align-items-center justify-content-center rounded-top border-bottom" style="height: 180px;">
+                                <i class="bx bx-image text-muted" style="font-size: 4rem;"></i>
+                            </div>
+                        <?php endif; ?>
                         
                         <div class="card-body d-flex flex-column">
                             <div class="text-muted mb-2 font-size-12">

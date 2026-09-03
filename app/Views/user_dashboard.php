@@ -5,7 +5,7 @@
     <div class="col-12">
         <div class="card shadow-sm border-0 bg-primary text-white" style="background: linear-gradient(45deg, #0d6efd, #0dcaf0);">
             <div class="card-body p-4 p-md-5">
-                <h2 class="fw-bold mb-2">Welcome, <?= htmlspecialchars($user['username'] ?? 'User', ENT_QUOTES, 'UTF-8') ?></h2>
+               <h2 class="fw-bold mb-2">Welcome, <?= htmlspecialchars($_SESSION['user']['username'] ?? 'User', ENT_QUOTES, 'UTF-8') ?></h2>
                 <p class="mb-0 fs-5">Manage your profile and interact with the Secure Blog.</p>
                 <div class="mt-3 opacity-75 fw-medium">
                     <i class="bx bx-calendar me-1"></i> <?= date('l, F j, Y') ?>

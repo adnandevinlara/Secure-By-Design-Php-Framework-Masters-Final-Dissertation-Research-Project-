@@ -34,7 +34,7 @@ class BlogController extends Controller
 
         $categories = [];
         try {
-            $categories = $db->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
+            $categories = $db->query("SELECT id, name FROM categories WHERE status = 'show' AND is_deleted = 0 ORDER BY name ASC")->fetchAll();
         } catch (\PDOException $e) {}
 
         // 2. ACL Data Scope: Can they see EVERYONE'S posts, or just their own?
@@ -54,10 +54,12 @@ class BlogController extends Controller
             $params[':user_id'] = $userId;
         }
 
-        // Apply Search Filters
+        // Apply Search Filters (Now including Points 23 & 24)
         $title = $_GET['title'] ?? '';
         $category_id = $_GET['category_id'] ?? '';
         $status = $_GET['status'] ?? '';
+        $start_date = $_GET['start_date'] ?? '';
+        $end_date = $_GET['end_date'] ?? '';
         
         if (!empty($title)) {
             $query .= " AND p.title LIKE :title";
@@ -70,6 +72,16 @@ class BlogController extends Controller
         if (!empty($status)) {
             $query .= " AND p.status = :status";
             $params[':status'] = $status;
+        }
+        // 🆕 Filter by Start Date
+        if (!empty($start_date)) {
+            $query .= " AND date(p.created_at) >= :start_date";
+            $params[':start_date'] = $start_date;
+        }
+        // 🆕 Filter by End Date
+        if (!empty($end_date)) {
+            $query .= " AND date(p.created_at) <= :end_date";
+            $params[':end_date'] = $end_date;
         }
 
         $query .= " ORDER BY p.created_at DESC";
@@ -85,7 +97,9 @@ class BlogController extends Controller
             'filters' => [
                 'title' => $title,
                 'category_id' => $category_id,
-                'status' => $status
+                'status' => $status,
+                'start_date' => $start_date,
+                'end_date' => $end_date
             ]
         ]);
         $res->html($html);
@@ -158,10 +172,13 @@ class BlogController extends Controller
             exit;
         }
 
-        $db = Connection::getInstance();
+        // 🟢 REQUIRED: Establish the database connection
+        $db = Connection::getInstance(); 
+        
         $categories = [];
         try {
-            $categories = $db->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
+            // 🆕 Filter out hidden (Point 21) and deleted (Point 27) categories
+            $categories = $db->query("SELECT id, name FROM categories WHERE status = 'show' AND is_deleted = 0 ORDER BY name ASC")->fetchAll();
         } catch (\PDOException $e) {}
 
         $html = $this->view->render('create_post', [
@@ -301,7 +318,8 @@ class BlogController extends Controller
 
         $categories = [];
         try {
-            $categories = $db->query("SELECT id, name FROM categories ORDER BY name ASC")->fetchAll();
+            // 🆕 Filter out hidden (Point 21) and deleted (Point 27) categories
+            $categories = $db->query("SELECT id, name FROM categories WHERE status = 'show' AND is_deleted = 0 ORDER BY name ASC")->fetchAll();
         } catch (\PDOException $e) {}
 
         $html = $this->view->render('edit_post', [

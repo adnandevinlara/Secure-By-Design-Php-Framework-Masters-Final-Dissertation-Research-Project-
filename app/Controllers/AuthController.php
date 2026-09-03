@@ -19,6 +19,12 @@ class AuthController extends Controller
      */
     public function showRegister(Request $req, Response $res): void
     {
+        // 🛡️ SECURITY BLOCK: If already logged in, redirect to Dashboard
+        if (isset($_SESSION['user'])) {
+            header("Location: /dashboard");
+            exit;
+        }
+
         $html = $this->view->render('register');
         $res->html($html);
     }
@@ -81,6 +87,12 @@ class AuthController extends Controller
      */
     public function showLogin(Request $req, Response $res): void
     {
+        // 🛡️ SECURITY BLOCK: If already logged in, redirect to Dashboard
+        if (isset($_SESSION['user'])) {
+            header("Location: /dashboard");
+            exit;
+        }
+
         $html = $this->view->render('login');
         $res->html($html);
     }
@@ -180,7 +192,12 @@ class AuthController extends Controller
     // Show the Forgot Password form
     public function showForgotPassword(Request $req, Response $res): void
     {
-        // Use your View Engine to render the new page
+        // 🛡️ SECURITY BLOCK: If already logged in, redirect to Dashboard
+        if (isset($_SESSION['user'])) {
+            header("Location: /dashboard");
+            exit;
+        }
+
         $html = $this->view->render('forgot_password', [
             'title' => 'Secure CMS | Forgot Password'
         ]);
@@ -190,6 +207,12 @@ class AuthController extends Controller
     // Show the Reset Password (OTP) form
     public function showResetPassword(Request $req, Response $res): void
     {
+        // 🛡️ SECURITY BLOCK: If already logged in, redirect to Dashboard
+        if (isset($_SESSION['user'])) {
+            header("Location: /dashboard");
+            exit;
+        }
+
         $html = $this->view->render('reset_password', [
             'title' => 'Secure CMS | Create New Password'
         ]);

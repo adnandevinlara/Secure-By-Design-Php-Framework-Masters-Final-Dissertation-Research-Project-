@@ -47,6 +47,10 @@ class Connection
                     self::$instance->exec("ALTER TABLE categories ADD COLUMN status TEXT DEFAULT 'show'");
                 } catch (\PDOException $e) {}
 
+                try {
+                    self::$instance->exec("ALTER TABLE categories ADD COLUMN is_deleted INTEGER DEFAULT 0");
+                } catch (\PDOException $e) {}
+
                 // Create SECURITY_LOGS table for the Admin Dashboard
                 self::$instance->exec("CREATE TABLE IF NOT EXISTS security_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,

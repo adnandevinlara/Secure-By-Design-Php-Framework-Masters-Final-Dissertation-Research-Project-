@@ -63,3 +63,4 @@
 [2026-08-27T03:09:19+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
 [2026-08-27T03:13:51+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
 [2026-08-27T03:15:38+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
+[2026-09-02T17:03:13+02:00] [WARNING] [FAILED_LOGIN] [IP: ::1] [UID: Guest] [POST /login] - Failed login attempt for email: imdad@gmail.com

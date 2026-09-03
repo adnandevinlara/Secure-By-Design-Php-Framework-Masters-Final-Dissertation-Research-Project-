@@ -30,10 +30,12 @@
 </div>
 
 <!-- Start Page Title -->
-<div class="row">
+<div class="row mb-4">
     <div class="col-12">
-        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
-            <h4 class="mb-sm-0 font-size-18">Dashboard Overview</h4>
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between bg-white p-3 shadow-sm rounded">
+            <h4 class="mb-sm-0 font-size-18 text-primary">
+                <i class="bx bx-home-smile me-2"></i>Welcome, <?= htmlspecialchars($_SESSION['user']['username'] ?? 'Admin', ENT_QUOTES, 'UTF-8') ?>!
+            </h4>
         </div>
     </div>
 </div>

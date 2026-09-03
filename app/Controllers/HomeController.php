@@ -15,39 +15,54 @@ class HomeController
         $this->view = new \Core\View\Engine();
     }
 
-    // 1. Load the main blog feed (Updated with Pagination & 'Published' filter)
+    // 1. Load the main blog feed 
     public function index(Request $req, Response $res): void
     {
         $db = Connection::getInstance();
 
-        // Pagination setup (Adnan's Requirement #14)
+        // Pagination setup
         $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-        $limit = 5; // Number of posts per page
+        $limit = 5; 
         $offset = ($page - 1) * $limit;
 
-        // Get total number of published posts to calculate total pages
-        $totalPosts = $db->query("SELECT COUNT(id) FROM posts WHERE status = 'published'")->fetchColumn();
-        $totalPages = ceil($totalPosts / $limit);
+        // Check if a user clicked a category in the sidebar
+        $categoryId = isset($_GET['category_id']) && is_numeric($_GET['category_id']) ? (int)$_GET['category_id'] : null;
 
-        // Fetch ONLY published posts with limit and offset
-        $stmt = $db->prepare("
+        // Base queries
+        $countQuery = "SELECT COUNT(id) FROM posts WHERE status = 'published'";
+        $dataQuery = "
             SELECT posts.*, categories.name AS category_name, users.username AS author_name 
             FROM posts 
             LEFT JOIN categories ON posts.category_id = categories.id
             LEFT JOIN users ON posts.author_id = users.id
             WHERE posts.status = 'published'
-            ORDER BY posts.created_at DESC
-            LIMIT :limit OFFSET :offset
-        ");
-        
-        // Bind parameters specifically as integers for SQLite LIMIT/OFFSET
+        ";
+
+        // If category is selected, append the filter
+        if ($categoryId) {
+            $countQuery .= " AND posts.category_id = :cat_id";
+            $dataQuery .= " AND posts.category_id = :cat_id";
+        }
+
+        $dataQuery .= " ORDER BY posts.created_at DESC LIMIT :limit OFFSET :offset";
+
+        // Execute Count
+        $stmtCount = $db->prepare($countQuery);
+        if ($categoryId) $stmtCount->bindParam(':cat_id', $categoryId, \PDO::PARAM_INT);
+        $stmtCount->execute();
+        $totalPosts = $stmtCount->fetchColumn();
+        $totalPages = ceil($totalPosts / $limit);
+
+        // Execute Data Fetch
+        $stmt = $db->prepare($dataQuery);
+        if ($categoryId) $stmt->bindParam(':cat_id', $categoryId, \PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
         $posts = $stmt->fetchAll();
 
-        // Fetch categories for the public sidebar
-        $categories = $db->query("SELECT * FROM categories ORDER BY name ASC")->fetchAll();
+        // Fetch categories for the public sidebar (Only active, non-deleted ones!)
+        $categories = $db->query("SELECT * FROM categories WHERE status = 'show' AND is_deleted = 0 ORDER BY name ASC")->fetchAll();
 
         // Render the public home view
         $html = $this->view->render('home', [

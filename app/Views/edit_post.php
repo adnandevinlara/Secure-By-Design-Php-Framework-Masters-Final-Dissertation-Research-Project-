@@ -15,7 +15,7 @@
     <div class="col-lg-10">
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
-                <form action="/post/update" method="POST" class="needs-validation" novalidate>
+                <form action="/post/update" method="POST" class="needs-validation" enctype="multipart/form-data" novalidate>
                     <?= \Core\Security\Csrf::getFormField() ?? '' ?>
                     
                     <!-- Hidden field to tell the controller WHICH post to update -->
@@ -27,7 +27,8 @@
                             <input type="text" name="title" class="form-control form-control-lg" value="<?= htmlspecialchars($post['title'], ENT_QUOTES, 'UTF-8') ?>" required>
                         </div>
 
-                        <div class="col-md-6 mb-3">
+                        <!-- Category Dropdown (4 columns) -->
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Category</label>
                             <select name="category_id" class="form-select">
                                 <option value="">Select a Category...</option>
@@ -39,12 +40,27 @@
                             </select>
                         </div>
 
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Status</label>
-                            <select name="status" class="form-select" required>
-                                <option value="published" <?= $post['status'] === 'published' ? 'selected' : '' ?>>Show (Publish)</option>
-                                <option value="hidden" <?= $post['status'] === 'hidden' ? 'selected' : '' ?>>Hide (Draft)</option>
-                            </select>
+                        <!-- Post Status Field (4 columns) using Radio Buttons to bypass JS -->
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold d-block">Status <span class="text-danger">*</span></label>
+                            
+                            <div class="form-check form-check-inline mt-2">
+                                <input class="form-check-input" type="radio" name="status" id="status_published" value="published" <?= ($post['status'] ?? '') === 'published' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="status_published">Published</label>
+                            </div>
+                            <div class="form-check form-check-inline mt-2">
+                                <input class="form-check-input" type="radio" name="status" id="status_draft" value="draft" <?= ($post['status'] ?? '') === 'draft' || ($post['status'] ?? '') === 'hidden' ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="status_draft">Draft</label>
+                            </div>
+                            
+                            <div class="form-text text-muted small mt-1">Drafts are hidden from public.</div>
+                        </div>
+
+                        <!-- Post Banner Upload (4 columns) -->
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Update Banner Image</label>
+                            <input type="file" class="form-control" name="banner_image" accept="image/jpeg, image/png, image/webp">
+                            <div class="form-text text-muted small">Leave empty to keep current image.</div>
                         </div>
                     </div>
 

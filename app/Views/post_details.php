@@ -123,8 +123,51 @@
     </div>
 </div>
 
+<!-- 🆕 Comment Success Modal (Point #22) -->
+<?php if (isset($_SESSION['comment_success'])): ?>
+    <div class="modal fade" id="commentSuccessModal" tabindex="-1" aria-labelledby="commentSuccessModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-body text-center p-5">
+                    <div class="text-success mb-3">
+                        <i class="bx bx-check-circle" style="font-size: 5rem;"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Success!</h4>
+                    <p class="text-muted fs-5 mb-0"><?= htmlspecialchars($_SESSION['comment_success'], ENT_QUOTES, 'UTF-8') ?></p>
+                </div>
+                <div class="modal-footer justify-content-center border-0 pb-4">
+                    <p class="text-muted small mb-0">Closing automatically in <span id="modalCountdown">5</span> seconds...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize and show the modal
+            var commentModal = new bootstrap.Modal(document.getElementById('commentSuccessModal'));
+            commentModal.show();
+            
+            // 5 Second Countdown Timer
+            var timeLeft = 5;
+            var countdownElement = document.getElementById('modalCountdown');
+            
+            var timer = setInterval(function() {
+                timeLeft--;
+                countdownElement.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    commentModal.hide(); // Remove the status message after 5 seconds
+                }
+            }, 1000); // 1000ms = 1 second
+        });
+    </script>
+    
+    <?php unset($_SESSION['comment_success']); // Clear it so it doesn't show again ?>
+<?php endif; ?>
+
 <?php 
-// FIX: Using the public layout!
 $content = ob_get_clean(); 
 require 'layouts/public.php'; 
 ?>

@@ -50,6 +50,11 @@
                 <label class="form-label">Start Date</label>
                 <input type="date" name="start_date" class="form-control" value="<?= htmlspecialchars($filters['start_date'] ?? '', ENT_QUOTES) ?>">
             </div>
+            <!-- End Date Filter -->
+            <div class="col-md-2">
+                <label class="form-label fw-bold text-muted small">End Date</label>
+                <input type="date" name="end_date" class="form-control form-control-sm" value="<?= htmlspecialchars($filters['end_date'] ?? '') ?>">
+            </div>
             <div class="col-md-3">
                 <button type="submit" class="btn btn-primary me-2"><i class="bx bx-search me-1"></i> Search</button>
                 <a href="/posts" class="btn btn-outline-secondary">Clear</a>

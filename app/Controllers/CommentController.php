@@ -116,7 +116,8 @@ class CommentController extends Controller
             ':content' => htmlspecialchars($content, ENT_QUOTES, 'UTF-8')
         ]);
 
-        $_SESSION['success'] = "Comment submitted successfully! It is awaiting moderation.";
+        // 🆕 Set a specific flag to trigger the Success Modal (Point #22)
+        $_SESSION['comment_success'] = "Comment is submitted for admin approval.";
         header("Location: /post/view?id=" . $postId);
         exit;
     }
