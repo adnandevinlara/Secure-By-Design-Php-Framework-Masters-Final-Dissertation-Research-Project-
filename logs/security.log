@@ -64,3 +64,9 @@
 [2026-08-27T03:13:51+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
 [2026-08-27T03:15:38+02:00] [WARNING] [RBAC_VIOLATION] [IP: ::1] [UID: 9] [GET /users] - A standard user attempted to access an admin-only route.
 [2026-09-02T17:03:13+02:00] [WARNING] [FAILED_LOGIN] [IP: ::1] [UID: Guest] [POST /login] - Failed login attempt for email: imdad@gmail.com
+[2026-09-03T22:13:36+00:00] [WARNING] [FAILED_LOGIN] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Failed login attempt for email: adnanzaib486@gmail.com
+[2026-09-03T22:51:42+00:00] [WARNING] [FAILED_LOGIN] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Failed login attempt for email: admin@securecms.com
+[2026-09-03T22:53:40+00:00] [WARNING] [FAILED_LOGIN] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Failed login attempt for email: admin@securecms.com
+[2026-09-03T22:54:20+00:00] [WARNING] [FAILED_LOGIN] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Failed login attempt for email: admin@securecms.com
+[2026-09-03T22:56:36+00:00] [WARNING] [FAILED_LOGIN] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Failed login attempt for email: admin@securecms.com
+[2026-09-11T23:48:51+00:00] [WARNING] [FAILED_LOGIN] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Failed login attempt for email: adnanzaib485@gmail.com

@@ -1,8 +1,8 @@
-version: '3.8'
-
 services:
+
   web:
     build: .
+    container_name: secure-framework-web-app
     ports:
       - "8080:80"
     volumes:
@@ -14,20 +14,13 @@ services:
       bash -c "sed -ri -e 's!/var/www/html!$${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
       && sed -ri -e 's!/var/www/!$${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
       && apache2-foreground"
-    depends_on:
-      - db
 
-  db:
-    image: mariadb:10.11
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: secure_cms
-      MYSQL_USER: cms_user
-      MYSQL_PASSWORD: cmspassword
+  sqlite-admin:
+    image: ghcr.io/coleifer/sqlite-web:latest
+    container_name: secure-framework-sqlite-database
     ports:
-      - "3307:3306"
+      - "8081:8080"
     volumes:
-      - db_data:/var/lib/mysql
-
-volumes:
-  db_data:
+      - ./database:/data
+    command: secure_app.sqlite
+    restart: unless-stopped

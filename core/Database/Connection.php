@@ -13,7 +13,11 @@ class Connection
     {
         if (self::$instance === null) {
             // Using SQLite for a seamless, secure local database
-            $dbPath = __DIR__ . '/../../secure_app.sqlite';
+            
+            // $dbPath = __DIR__ . '/../../secure_app.sqlite';
+            // change to database path
+            $dbPath = __DIR__ . '/../../database/secure_app.sqlite';
+            
             
             try {
                 self::$instance = new PDO("sqlite:" . $dbPath);
