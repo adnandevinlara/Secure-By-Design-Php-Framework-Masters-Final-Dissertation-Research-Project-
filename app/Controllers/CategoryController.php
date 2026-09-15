@@ -9,11 +9,42 @@ use Core\Database\Connection;
 
 class CategoryController extends Controller
 {
-    // 1. Listing Page (READ) - Points to categories/index.php
+    // Helper to extract ACL permissions cleanly
+    private function getAcl() {
+        $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
+        return [
+            'isAdmin' => in_array($role, ['admin', 'super admin', 'super_admin']),
+            'isSubAdmin' => $role === 'sub_admin',
+            'perms' => $_SESSION['user']['permissions'] ?? []
+        ];
+    }
+
+    // Centralized Security Check
+    private function checkAccess() {
+        extract($this->getAcl());
+        
+        // 1. Block Regular Users completely
+        if (!$isAdmin && !$isSubAdmin) {
+            $_SESSION['error'] = "Access Denied: Only administrators can manage categories.";
+            header("Location: /dashboard");
+            exit;
+        }
+        
+        // 2. Block SubAdmins if they don't have specific category permissions
+        // (Since we didn't add this to the UI, ALL SubAdmins will currently be blocked from categories!)
+        if ($isSubAdmin && !in_array('manage_categories', $perms)) {
+            $_SESSION['error'] = "Access Denied: You are restricted from accessing the Categories module.";
+            header("Location: /dashboard");
+            exit;
+        }
+    }
+
+    // 1. Listing Page (READ)
     public function index(Request $req, Response $res): void
     {
+        $this->checkAccess(); // 🔒 SECURITY LOCK
+
         $db = Connection::getInstance();
-        
         $name = $_GET['name'] ?? '';
         $status = $_GET['status'] ?? '';
 
@@ -42,20 +73,24 @@ class CategoryController extends Controller
         $res->html($html);
     }
 
-    // 2. Separate Form Page (CREATE) - Fulfills Point #19
+    // 2. Separate Form Page (CREATE)
     public function create(Request $req, Response $res): void
     {
+        $this->checkAccess(); // 🔒 SECURITY LOCK
+
         $html = $this->view->render('categories/create', [
             'title' => 'Secure CMS | Create Category'
         ]);
         $res->html($html);
     }
 
-    // 3. Handle New Category Submission (Keeping your Trap!)
+    // 3. Handle New Category Submission
     public function store(Request $req, Response $res): void
     {
+        $this->checkAccess(); // 🔒 SECURITY LOCK
+
         $name = trim($_POST['name'] ?? '');
-        $status = $_POST['status'] ?? 'show'; // New status field from Point #18
+        $status = $_POST['status'] ?? 'show'; 
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
         $user = $_SESSION['user']['username'] ?? 'Guest';
 
@@ -78,7 +113,6 @@ class CategoryController extends Controller
         }
 
         if ($isMalicious) {
-            // 1. Log to the database for the Admin Dashboard UI (Updated with required columns)
             $db = Connection::getInstance();
             $stmt = $db->prepare("INSERT INTO security_logs (event_type, ip_address, user, details, severity, request_url, description, timestamp) VALUES (:event_type, :ip, :user, :details, :severity, :request_url, :description, :timestamp)");
             $stmt->execute([
@@ -91,10 +125,6 @@ class CategoryController extends Controller
                 ':description' => 'Blocked malicious payload on Category creation',
                 ':timestamp' => date('Y-m-d H:i:s')
             ]);
-
-            // 2. Fallback flat-file log (Optional, good for server admins)
-            $logLine = sprintf("[%s] [CRITICAL] [%s] [IP: %s] [User: %s]\n", date('c'), $eventType, $ip, $user);
-            @file_put_contents(__DIR__ . '/../../logs/security.log', $logLine, FILE_APPEND);
 
             $_SESSION['error'] = "SECURITY INTERVENTION: Malicious payload detected. Action logged.";
             header("Location: /category/create");
@@ -114,9 +144,11 @@ class CategoryController extends Controller
         exit;
     }
 
-    // 4. Toggle Status (HIDE/SHOW) - Point #18
+    // 4. Toggle Status (HIDE/SHOW)
     public function updateStatus(Request $req, Response $res): void
     {
+        $this->checkAccess(); // 🔒 SECURITY LOCK
+
         $id = $_POST['category_id'] ?? 0;
         $status = $_POST['status'] ?? 'show';
 
@@ -129,13 +161,14 @@ class CategoryController extends Controller
         exit;
     }
 
-    // 5. Delete Category - Point #27 (Soft Delete)
+    // 5. Delete Category (Soft Delete)
     public function delete(Request $req, Response $res): void
     {
+        $this->checkAccess(); // 🔒 SECURITY LOCK
+
         $id = $_POST['category_id'] ?? 0;
         $db = Connection::getInstance();
         
-        // 🆕 UPDATE the is_deleted flag instead of dropping the row
         $stmt = $db->prepare("UPDATE categories SET is_deleted = 1 WHERE id = :id");
         $stmt->execute([':id' => $id]);
 

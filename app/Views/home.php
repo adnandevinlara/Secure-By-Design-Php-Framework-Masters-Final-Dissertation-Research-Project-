@@ -62,7 +62,6 @@
             <?php endforeach; ?>
             </div>
 
-            <!-- Pagination (Adnan's Point #14) -->
             <?php if (isset($totalPages) && $totalPages > 1): ?>
             <nav aria-label="Page navigation" class="mt-4">
                 <ul class="pagination justify-content-center">
@@ -119,7 +118,6 @@
 </div>
 
 <?php 
-// THIS IS THE CRUCIAL FIX FOR POINT 3! We are wrapping this in the public layout.
 $content = ob_get_clean(); 
 require 'layouts/public.php'; 
 ?>

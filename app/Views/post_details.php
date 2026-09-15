@@ -65,7 +65,6 @@
 
                 <hr class="my-4">
 
-                <!-- Submit a Comment Form (Adnan's Point #10: Restrict to Registered Users) -->
                 <h5 class="fw-bold mb-3">Leave a Reply</h5>
                 
                 <?php if (isset($_SESSION['user'])): ?>
@@ -123,7 +122,6 @@
     </div>
 </div>
 
-<!-- 🆕 Comment Success Modal (Point #22) -->
 <?php if (isset($_SESSION['comment_success'])): ?>
     <div class="modal fade" id="commentSuccessModal" tabindex="-1" aria-labelledby="commentSuccessModalLabel" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">

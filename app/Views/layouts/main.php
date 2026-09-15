@@ -8,7 +8,7 @@
     <meta content="Secure-by-Design PHP Framework CMS" name="description"/>
     
     <!-- App favicon -->
-    <link href="/assets/images/favicon.ico" rel="shortcut icon"/>
+    <link href="/assets/images/logo-dark.png" rel="icon" type="image/png" />
     <!-- Bootstrap Css -->
     <link href="/assets/css/bootstrap.min.css" id="bootstrap-style" rel="stylesheet" type="text/css"/>
     <!-- Icons Css -->
@@ -52,7 +52,7 @@
                     </div>
 
                     <button class="btn btn-sm px-3 font-size-16 header-item waves-effect" id="vertical-menu-btn" type="button">
-                        <i class="fa fa-fw fa-bars"></i>
+                        <i class="bx bx-grid-alt"></i>
                     </button>
                 </div>
 
@@ -79,6 +79,16 @@
                                 <?= \Core\Security\Csrf::getFormField() ?? ''; ?>
                                 <button type="submit" class="dropdown-item text-danger"><i class="bx bx-power-off font-size-16 align-middle me-1 text-danger"></i> Logout</button>
                             </form>
+                            <!-- A divider line to separate it from Logout -->
+                            <div class="dropdown-divider"></div>
+                            <li>
+                                <a class="dropdown-item" href="/change-password">
+                                    <i class="bx bx-lock-open font-size-16 align-middle me-1"></i> 
+                                    <span key="t-change-password">Change Password</span>
+                                </a>
+                            </li>
+                            <!-- A divider line to separate it from Logout -->
+                            <div class="dropdown-divider"></div>
                         </div>
                     </div>
                 </div>
@@ -200,5 +210,69 @@
     <script src="/assets/libs/node-waves/waves.min.js"></script>
     <!-- App js -->
     <script src="/assets/js/app.js"></script>
+    <script>
+        // --- Image Preview Logic ---
+        function previewPostImage(event) {
+            const input = event.target;
+            const preview = document.getElementById('imagePreview');
+            
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                // Failsafe: Ensure it's an image
+                if (!file.type.match('image.*')) {
+                    alert('Please select a valid image file (JPG, PNG, WEBP).');
+                    input.value = ''; // Clear the input
+                    preview.style.display = 'none';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block'; // Show the image
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.src = "";
+                preview.style.display = 'none';
+            }
+        }
+
+        // --- Auto-Close Success Modals & Alerts Logic ---
+        document.addEventListener("DOMContentLoaded", function() {
+            setTimeout(function() {
+                
+                // 1. Auto-close Bootstrap Alerts (e.g., Flash messages)
+                let alerts = document.querySelectorAll('.alert-success');
+                alerts.forEach(function(alert) {
+                    if (typeof bootstrap !== 'undefined') {
+                        let bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    } else {
+                        alert.style.display = 'none'; // Fallback
+                    }
+                });
+
+                // 2. Auto-close Bootstrap Modals containing success messages
+                let openModals = document.querySelectorAll('.modal.show');
+                openModals.forEach(function(modal) {
+                    // Check if the modal contains the word 'success' so we don't accidentally close form modals
+                    if (modal.innerText.toLowerCase().includes('success')) {
+                        if (typeof bootstrap !== 'undefined') {
+                            let bsModal = bootstrap.Modal.getInstance(modal);
+                            if (bsModal) bsModal.hide();
+                        } else {
+                            modal.style.display = 'none'; // Fallback
+                            document.body.classList.remove('modal-open');
+                            let backdrop = document.querySelector('.modal-backdrop');
+                            if (backdrop) backdrop.remove();
+                        }
+                    }
+                });
+                
+            }, 5000); // 5000 ms = 5 seconds
+        });
+    </script>
 </body>
 </html>

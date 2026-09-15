@@ -29,13 +29,26 @@
     </div>
 </div>
 
-<!-- Start Page Title -->
+<!-- Start Page Title & Phase 3 Quick Links -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="page-title-box d-sm-flex align-items-center justify-content-between bg-white p-3 shadow-sm rounded">
             <h4 class="mb-sm-0 font-size-18 text-primary">
                 <i class="bx bx-home-smile me-2"></i>Welcome, <?= htmlspecialchars($_SESSION['user']['username'] ?? 'Admin', ENT_QUOTES, 'UTF-8') ?>!
             </h4>
+            
+            <!-- PHASE 3: Quick Links -->
+            <div class="page-title-right">
+                <a href="/posts/create" class="btn btn-primary btn-sm shadow-sm me-1">
+                    <i class="bx bx-plus-circle align-middle"></i> New Post
+                </a>
+                <a href="/users" class="btn btn-info btn-sm shadow-sm me-1 text-white">
+                    <i class="bx bx-group align-middle"></i> Manage Users
+                </a>
+                <a href="/comments" class="btn btn-warning btn-sm shadow-sm text-dark">
+                    <i class="bx bx-message-square-dots align-middle"></i> Comments
+                </a>
+            </div>
         </div>
     </div>
 </div>
@@ -129,6 +142,18 @@
     <?php endif; ?>
 </div>
 
+<!-- PHASE 3: Activity Chart Row -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Site Activity (Comments Last 7 Days)</h4>
+                <canvas id="activityChart" style="max-height: 300px; width: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Recent Activity Row -->
 <div class="row">
     
@@ -145,7 +170,9 @@
                                 <?php foreach ($posts as $post): ?>
                                     <tr>
                                         <!-- SECURE: Neutralizing Stored XSS Payloads on output -->
-                                        <td class="fw-medium text-truncate" style="max-width: 150px;"><?= htmlspecialchars($post['title'] ?? 'Untitled', ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td class="fw-medium text-truncate" style="max-width: 150px;">
+                                            <?= htmlspecialchars($post['title'] ?? 'Untitled', ENT_QUOTES, 'UTF-8') ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -171,8 +198,12 @@
                             <?php if (!empty($recent_comments)): ?>
                                 <?php foreach ($recent_comments as $comment): ?>
                                     <tr>
-                                        <td class="fw-medium text-truncate" style="max-width: 150px;"><?= htmlspecialchars($comment['content'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td class="text-muted font-size-12"><?= htmlspecialchars($comment['author'] ?? 'Anonymous', ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td class="fw-medium text-truncate" style="max-width: 150px;">
+                                            <?= htmlspecialchars($comment['content'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                        </td>
+                                        <td class="text-muted font-size-12">
+                                            <?= htmlspecialchars($comment['author'] ?? 'Anonymous', ENT_QUOTES, 'UTF-8') ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -198,8 +229,12 @@
                             <?php if (!empty($recent_logs)): ?>
                                 <?php foreach ($recent_logs as $log): ?>
                                     <tr>
-                                        <td class="fw-medium text-danger text-truncate" style="max-width: 150px;"><?= htmlspecialchars($log['event_type'] ?? 'Unknown', ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td class="text-muted font-size-12"><?= htmlspecialchars($log['ip_address'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td class="fw-medium text-danger text-truncate" style="max-width: 150px;">
+                                            <?= htmlspecialchars($log['event_type'] ?? 'Unknown', ENT_QUOTES, 'UTF-8') ?>
+                                        </td>
+                                        <td class="text-muted font-size-12">
+                                            <?= htmlspecialchars($log['ip_address'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
@@ -213,6 +248,49 @@
     </div>
     <?php endif; ?>
 </div>
+
+<!-- Load Chart.js for Phase 3 Chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('activityChart');
+        if (ctx) {
+            // Parse the JSON data passed securely from the DashboardController
+            const labels = <?= $chartLabels ?? '[]' ?>;
+            const dataPoints = <?= $chartData ?? '[]' ?>;
+
+            new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'New Comments',
+                        data: dataPoints,
+                        backgroundColor: 'rgba(52, 195, 143, 0.2)', // Soft green
+                        borderColor: '#34c38f', // Solid green
+                        borderWidth: 2,
+                        pointBackgroundColor: '#34c38f',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
 
 <?php 
 // Capture the output and inject it into the master layout

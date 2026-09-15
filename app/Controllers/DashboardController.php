@@ -126,24 +126,18 @@ class DashboardController
         $recent_comments = [];
         $recent_logs = [];
 
-        // ACL: View Users
+        // ACL Checks
         if ($isAdmin || ($isSubAdmin && in_array('view_users', $perms))) {
             $stats['total_users'] = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
         }
-
-        // ACL: View Blogs
         if ($isAdmin || ($isSubAdmin && in_array('view_blogs', $perms))) {
             $stats['total_posts'] = $db->query("SELECT COUNT(*) FROM posts")->fetchColumn();
             $posts = $db->query("SELECT title, content FROM posts ORDER BY created_at DESC LIMIT 5")->fetchAll();
         }
-
-        // ACL: View Comments
         if ($isAdmin || ($isSubAdmin && in_array('view_comments', $perms))) {
             $stats['total_comments'] = $db->query("SELECT COUNT(*) FROM comments")->fetchColumn();
             $recent_comments = $db->query("SELECT author, content FROM comments ORDER BY created_at DESC LIMIT 5")->fetchAll();
         }
-
-        // ACL: View Security Alerts
         if ($isAdmin || ($isSubAdmin && in_array('view_security', $perms))) {
             if ($this->tableExists($db, 'security_logs')) {
                 $stats['total_alerts'] = $db->query("SELECT COUNT(*) FROM security_logs")->fetchColumn();
@@ -151,15 +145,47 @@ class DashboardController
             }
         }
 
+        // ---------------------------------------------------------
+        // NEW PHASE 3: Chart Data (Total Comments last 7 days for Admin)
+        $stmtChart = $db->query("
+            SELECT date(created_at) as activity_date, COUNT(*) as count 
+            FROM comments 
+            WHERE created_at >= date('now', '-7 days')
+            GROUP BY date(created_at)
+            ORDER BY activity_date ASC
+        ");
+        $chartResults = $stmtChart->fetchAll();
+
+        $chartLabels = [];
+        $chartData = [];
+        
+        // Pre-fill the last 7 days with 0 so the chart always looks full
+        for ($i = 6; $i >= 0; $i--) {
+            $dateString = date('Y-m-d', strtotime("-$i days"));
+            $chartLabels[] = date('M d', strtotime($dateString));
+            
+            $count = 0;
+            foreach ($chartResults as $row) {
+                if ($row['activity_date'] === $dateString) {
+                    $count = (int)$row['count'];
+                    break;
+                }
+            }
+            $chartData[] = $count;
+        }
+        // ---------------------------------------------------------
+
         $html = $this->view->render('dashboard', [
-            'title' => 'Secure CMS | Dashboard Overview',
+            'title' => 'Secure CMS | Admin Dashboard',
             'stats' => $stats,
             'posts' => $posts,
             'recent_comments' => $recent_comments,
             'recent_logs' => $recent_logs,
             'isAdmin' => $isAdmin,
             'isSubAdmin' => $isSubAdmin,
-            'perms' => $perms
+            'perms' => $perms,
+            'chartLabels' => json_encode($chartLabels), // Passing to view!
+            'chartData' => json_encode($chartData)      // Passing to view!
         ]);
 
         $res->html($html);

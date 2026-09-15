@@ -46,6 +46,29 @@
                     <option value="hidden" <?= ($filters['status'] ?? '') === 'hidden' ? 'selected' : '' ?>>Hidden</option>
                 </select>
             </div>
+            <!-- User Type Filter -->
+            <div class="col-md-2">
+                <label class="form-label">User Type</label>
+                <select name="role" class="form-select">
+                    <option value="">All User Types</option>
+                    <option value="super_admin" <?= ($filters['role'] ?? '') === 'super_admin' ? 'selected' : '' ?>>Super Admin</option>
+                    <option value="sub_admin" <?= ($filters['role'] ?? '') === 'sub_admin' ? 'selected' : '' ?>>Sub Admin</option>
+                    <option value="user" <?= ($filters['role'] ?? '') === 'user' ? 'selected' : '' ?>>Registered User</option>
+                </select>
+            </div>
+
+            <!-- Author Name Filter -->
+            <div class="col-md-2">
+                <label class="form-label">Author</label>
+                <select name="author_id" class="form-select">
+                    <option value="">All Authors</option>
+                    <?php foreach ($authors ?? [] as $auth): ?>
+                        <option value="<?= $auth['id'] ?>" <?= ($filters['author_id'] ?? '') == $auth['id'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($auth['username'], ENT_QUOTES) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
             <div class="col-md-2">
                 <label class="form-label">Start Date</label>
                 <input type="date" name="start_date" class="form-control" value="<?= htmlspecialchars($filters['start_date'] ?? '', ENT_QUOTES) ?>">
@@ -72,6 +95,7 @@
                     <tr>
                         <th>Title</th>
                         <th>Category</th>
+                        <th>Author</th>
                         <th>Status</th>
                         <th>Date</th>
                         <th>Action</th>
@@ -85,6 +109,10 @@
                                     <?= htmlspecialchars($post['title'], ENT_QUOTES, 'UTF-8') ?>
                                 </td>
                                 <td><span class="badge bg-info-subtle text-info py-1 px-2"><?= htmlspecialchars($post['category_name'] ?? 'Uncategorized', ENT_QUOTES, 'UTF-8') ?></span></td>
+                                <td>
+                                    <span class="fw-medium"><?= htmlspecialchars($post['author_name'] ?? 'Unknown', ENT_QUOTES, 'UTF-8') ?></span>
+                                    <br><small class="text-muted"><?= ucfirst(htmlspecialchars($post['author_role'] ?? 'user', ENT_QUOTES, 'UTF-8')) ?></small>
+                                </td>
                                 <td>
                                     <?php if ($post['status'] === 'published'): ?>
                                         <span class="badge bg-success-subtle text-success py-1 px-2">Published</span>

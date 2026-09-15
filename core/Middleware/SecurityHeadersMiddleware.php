@@ -16,8 +16,9 @@ class SecurityHeadersMiddleware
         // 3. Strict-Transport-Security (HSTS): Forces browsers to use secure HTTPS connections (ignored on localhost, but required for production).
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
 
-        // 4. Content Security Policy (CSP): Severely restricts where resources (scripts, images, styles) can be loaded from to mitigate XSS.
-        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+        // 4. Content Security Policy (CSP): Severely restricts where resources can be loaded from to mitigate XSS. 
+        // -> ADDED: img-src 'self' data:; to allow local base64 image previews.
+        header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline';");
 
         // 5. Referrer-Policy: Controls how much referrer information is included with requests.
         header('Referrer-Policy: strict-origin-when-cross-origin');

@@ -39,7 +39,6 @@
                         <input type="password" name="password" class="form-control" required minlength="8">
                     </div>
                     
-                    <!-- Adnan's Requirement A: User Type -->
                     <div class="mb-3 mt-4 p-3 bg-light rounded border">
                         <label class="form-label fw-bold mb-1">A. User Type</label>
                         <div class="form-check">
@@ -51,7 +50,6 @@
             </div>
         </div>
 
-        <!-- Right Column: Adnan's Permissions Checkboxes -->
         <div class="col-lg-8">
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white border-bottom pb-0">
@@ -115,15 +113,15 @@
                                 <label class="form-check-label" for="p_vc">View Comments</label>
                             </div>
                             <div class="form-check mb-1">
-                                <input class="form-check-input" type="checkbox" name="permissions[]" value="status_comments" id="p_sc">
+                                <input class="form-check-input" type="checkbox" name="permissions[]" value="status_comment" id="p_sc">
                                 <label class="form-check-label" for="p_sc">Change Status (Hide/Show)</label>
                             </div>
                             <div class="form-check mb-1">
-                                <input class="form-check-input" type="checkbox" name="permissions[]" value="reply_comments" id="p_rc">
+                                <input class="form-check-input" type="checkbox" name="permissions[]" value="reply_comment" id="p_rc">
                                 <label class="form-check-label" for="p_rc">Reply to Comment</label>
                             </div>
                             <div class="form-check mb-1">
-                                <input class="form-check-input" type="checkbox" name="permissions[]" value="delete_comments" id="p_dc">
+                                <input class="form-check-input" type="checkbox" name="permissions[]" value="delete_comment" id="p_dc">
                                 <label class="form-check-label" for="p_dc">Delete Comment</label>
                             </div>
                         </div>

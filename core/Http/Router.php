@@ -52,7 +52,7 @@ class Router
                     return;
                 }
 
-                // 3b. If the route is pointing to a Controller Class (e.g., [UserController::class, 'index'])
+                // 3b. If the route is pointing to a Controller Class
                 if (is_array($action) && count($action) === 2) {
                     [$class, $method] = $action;
                     

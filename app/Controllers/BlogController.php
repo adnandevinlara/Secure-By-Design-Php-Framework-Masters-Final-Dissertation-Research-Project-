@@ -41,9 +41,10 @@ class BlogController extends Controller
         $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('view_blogs', $perms));
 
         $query = "
-            SELECT p.*, c.name AS category_name 
+            SELECT p.*, c.name AS category_name, u.username AS author_name, u.role AS author_role
             FROM posts p 
             LEFT JOIN categories c ON p.category_id = c.id 
+            LEFT JOIN users u ON p.author_id = u.id
             WHERE 1=1
         ";
         
@@ -54,12 +55,24 @@ class BlogController extends Controller
             $params[':user_id'] = $userId;
         }
 
-        // Apply Search Filters (Now including Points 23 & 24)
         $title = $_GET['title'] ?? '';
         $category_id = $_GET['category_id'] ?? '';
         $status = $_GET['status'] ?? '';
         $start_date = $_GET['start_date'] ?? '';
         $end_date = $_GET['end_date'] ?? '';
+
+        $role = $_GET['role'] ?? '';
+        $author_id = $_GET['author_id'] ?? '';
+
+        // Add these inside your filter block:
+        if (!empty($role)) {
+            $query .= " AND u.role = :role";
+            $params[':role'] = $role;
+        }
+        if (!empty($author_id)) {
+            $query .= " AND p.author_id = :author_id";
+            $params[':author_id'] = $author_id;
+        }
         
         if (!empty($title)) {
             $query .= " AND p.title LIKE :title";
@@ -90,6 +103,11 @@ class BlogController extends Controller
         $stmt->execute($params);
         $posts = $stmt->fetchAll();
 
+        $authors = [];
+        try {
+            $authors = $db->query("SELECT id, username FROM users ORDER BY username ASC")->fetchAll();
+        } catch (\PDOException $e) {}
+
         $html = $this->view->render('posts', [
             'title' => 'Blog Posts Management',
             'posts' => $posts,
@@ -99,7 +117,9 @@ class BlogController extends Controller
                 'category_id' => $category_id,
                 'status' => $status,
                 'start_date' => $start_date,
-                'end_date' => $end_date
+                'end_date' => $end_date,
+                'role' => $role,             
+                'author_id' => $author_id    
             ]
         ]);
         $res->html($html);
@@ -177,7 +197,7 @@ class BlogController extends Controller
         
         $categories = [];
         try {
-            // 🆕 Filter out hidden (Point 21) and deleted (Point 27) categories
+            
             $categories = $db->query("SELECT id, name FROM categories WHERE status = 'show' AND is_deleted = 0 ORDER BY name ASC")->fetchAll();
         } catch (\PDOException $e) {}
 
@@ -231,7 +251,6 @@ class BlogController extends Controller
             exit;
         }
 
-        // 🛡️ Secure Image Upload Handling (Point #16)
         $bannerPath = null;
         if (isset($_FILES['banner_image']) && $_FILES['banner_image']['error'] === UPLOAD_ERR_OK) {
             $uploadDir = __DIR__ . '/../../public/uploads/banners/';
@@ -318,7 +337,6 @@ class BlogController extends Controller
 
         $categories = [];
         try {
-            // 🆕 Filter out hidden (Point 21) and deleted (Point 27) categories
             $categories = $db->query("SELECT id, name FROM categories WHERE status = 'show' AND is_deleted = 0 ORDER BY name ASC")->fetchAll();
         } catch (\PDOException $e) {}
 

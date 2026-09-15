@@ -20,6 +20,6 @@ class SecurityHeaders
         
         // 5. Content Security Policy (CSP - Strictly controls where scripts/styles can load from)
         // Note: We are allowing 'unsafe-inline' for styles right now so our dashboard CSS works.
-        header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net;");
+        header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline';");
     }
 }

@@ -20,6 +20,7 @@ class CommentController extends Controller
     }
 
     // 1. List Comments (Data Isolated!)
+    // 1. List Comments (Data Isolated & Filtered)
     public function index(Request $req, Response $res): void
     {
         $db = Connection::getInstance();
@@ -29,15 +30,17 @@ class CommentController extends Controller
         $status = $_GET['status'] ?? '';
         $startDate = $_GET['start_date'] ?? '';
         $endDate = $_GET['end_date'] ?? '';
+        $role = $_GET['role'] ?? ''; // 🆕 Grab the role filter
 
         // Data Scope: Can they see EVERYONE'S comments, or just comments on THEIR posts?
         $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('view_comments', $perms));
 
-        // Point #12 & #20: JOIN with posts table to enforce data isolation
+        // 🆕 JOIN with users table to get the commenter's role
         $query = "
-            SELECT c.*, p.title AS post_title, p.author_id 
+            SELECT c.*, p.title AS post_title, p.author_id, u.role AS commenter_role
             FROM comments c
             JOIN posts p ON c.post_id = p.id
+            LEFT JOIN users u ON c.author_id = u.id
             WHERE 1=1
         ";
         
@@ -61,6 +64,11 @@ class CommentController extends Controller
             $query .= " AND date(c.created_at) <= :end_date";
             $params[':end_date'] = $endDate;
         }
+        // 🆕 Apply the User Type Filter
+        if (!empty($role)) {
+            $query .= " AND u.role = :role";
+            $params[':role'] = $role;
+        }
 
         $query .= " ORDER BY c.created_at DESC";
 
@@ -71,7 +79,12 @@ class CommentController extends Controller
         $html = $this->view->render('comments', [
             'title' => 'Comments Moderation',
             'comments' => $comments,
-            'filters' => ['status' => $status, 'start_date' => $startDate, 'end_date' => $endDate]
+            'filters' => [
+                'status' => $status, 
+                'start_date' => $startDate, 
+                'end_date' => $endDate,
+                'role' => $role // 🆕 Pass filter back to view
+            ]
         ]);
         $res->html($html);
     }
@@ -116,13 +129,11 @@ class CommentController extends Controller
             ':content' => htmlspecialchars($content, ENT_QUOTES, 'UTF-8')
         ]);
 
-        // 🆕 Set a specific flag to trigger the Success Modal (Point #22)
         $_SESSION['comment_success'] = "Comment is submitted for admin approval.";
         header("Location: /post/view?id=" . $postId);
         exit;
     }
 
-    // 3. Update Comment Status (Point #20)
     public function updateStatus(Request $req, Response $res): void
     {
         $commentId = $_POST['comment_id'] ?? 0;
@@ -181,7 +192,6 @@ class CommentController extends Controller
         exit;
     }
 
-    // 5. Reply to Comment (Points #11 & #13)
     public function reply(Request $req, Response $res): void
     {
         $commentId = $_POST['comment_id'] ?? 0;

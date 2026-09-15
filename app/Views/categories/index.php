@@ -5,7 +5,7 @@
         <div class="page-title-box d-sm-flex align-items-center justify-content-between mb-4">
             <h4 class="mb-sm-0 font-size-18 text-primary"><i class="bx bx-purchase-tag-alt me-1"></i> Manage Categories</h4>
             <div class="page-title-right">
-                <!-- Point #19: Link to the separate creation form -->
+                
                 <a href="/category/create" class="btn btn-primary"><i class="bx bx-plus me-1"></i> Add New Category</a>
             </div>
         </div>
@@ -20,7 +20,6 @@
     <div class="alert alert-success shadow-sm border-0"><?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?></div>
 <?php endif; ?>
 
-<!-- Point #18: Search Form On Top -->
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-body bg-light">
         <form method="GET" action="/categories" class="row g-3 align-items-end">
@@ -44,7 +43,6 @@
     </div>
 </div>
 
-<!-- Point #18: Categories Data Table -->
 <div class="card shadow-sm border-0">
     <div class="card-body p-0">
         <div class="table-responsive" style="min-height: 300px; overflow: visible;">
@@ -71,7 +69,7 @@
                                 </td>
                                 <td class="text-muted"><small><?= htmlspecialchars($cat['created_at']) ?></small></td>
                                 <td>
-                                    <!-- Action Dropdown for Point #18 (Edit, Status, Delete) -->
+                                    
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                             Actions <i class="mdi mdi-chevron-down"></i>

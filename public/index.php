@@ -275,20 +275,21 @@ $router->get('/users', function (\Core\Http\Request $req, \Core\Http\Response $r
     $controller->index($req, $res);
 });
 
-// Delete User Route (ACL Handled by Controller)
-$router->post('/users/delete', function (\Core\Http\Request $req, \Core\Http\Response $res) {
-    \Core\Middleware\AuthMiddleware::handle();
-    
-    $controller = new \App\Controllers\UserController();
-    $controller->delete($req, $res);
-});
-
-// Delete a User
+// Delete a User (ACL Security is handled natively inside UserController)
 $router->post('/users/delete', function (\Core\Http\Request $req, \Core\Http\Response $res) {
     \Core\Middleware\AuthMiddleware::handle(); 
     
     $controller = new \App\Controllers\UserController();
     $controller->delete($req, $res);
+});
+
+// Toggle User Status (ACL Security is handled natively inside UserController)
+$router->post('/users/toggle-status', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    
+    // Removed AdminMiddleware here so it stops kicking SubAdmins to the dashboard
+    $controller = new \App\Controllers\UserController();
+    $controller->toggleStatus($req, $res);
 });
 
 // 1. View Categories List
@@ -450,16 +451,18 @@ $router->post('/comment/reply', function (\Core\Http\Request $req, \Core\Http\Re
     $controller->reply($req, $res);
 });
 
+// Show Change Password Form
 $router->get('/change-password', function (\Core\Http\Request $req, \Core\Http\Response $res) {
-    \Core\Middleware\AuthMiddleware::handle();
-    $controller = new \App\Controllers\AuthController();
-    $controller->showChangePassword($req, $res);
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\UserController();
+    $controller->changePasswordForm($req, $res);
 });
 
+// Process Password Change (Matching your existing form action!)
 $router->post('/change-password/process', function (\Core\Http\Request $req, \Core\Http\Response $res) {
-    \Core\Middleware\AuthMiddleware::handle();
-    $controller = new \App\Controllers\AuthController();
-    $controller->processChangePassword($req, $res);
+    \Core\Middleware\AuthMiddleware::handle(); 
+    $controller = new \App\Controllers\UserController();
+    $controller->updatePassword($req, $res);
 });
 
 
@@ -486,6 +489,21 @@ $router->post('/comment/store', function ($req, $res) {
     (new \App\Controllers\CommentController())->store($req, $res);
 });
 
+// Show the Edit Permissions Page
+$router->get('/subadmin/edit', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    
+    $controller = new \App\Controllers\SubAdminController();
+    $controller->edit($req, $res);
+});
+
+// Process the Permissions Update
+$router->post('/subadmin/update', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    \Core\Middleware\AuthMiddleware::handle(); 
+    
+    $controller = new \App\Controllers\SubAdminController();
+    $controller->update($req, $res);
+});
 
 // // TEMPORARY ADMIN ELEVATION ROUTE
 // $router->get('/make-admin', function () {

@@ -20,7 +20,7 @@
 </head>
 
 <body>
-    <!-- Top Navigation for UnAuth Pages (Adnan's Point #4) -->
+
     <nav class="navbar navbar-expand-lg public-navbar py-3 shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold text-primary fs-4" href="/">

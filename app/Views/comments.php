@@ -19,7 +19,7 @@
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-body bg-light">
         <form method="GET" action="/comments" class="row g-3 align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Comment Status</label>
                 <select name="status" class="form-select">
                     <option value="">All Statuses</option>
@@ -27,15 +27,27 @@
                     <option value="pending" <?= ($filters['status'] ?? '') === 'pending' ? 'selected' : '' ?>>Pending</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            
+            <!-- 🆕 NEW: User Type Dropdown Filter -->
+            <div class="col-md-2">
+                <label class="form-label">User Type</label>
+                <select name="role" class="form-select">
+                    <option value="">All Users</option>
+                    <option value="super_admin" <?= ($filters['role'] ?? '') === 'super_admin' ? 'selected' : '' ?>>Super Admin</option>
+                    <option value="sub_admin" <?= ($filters['role'] ?? '') === 'sub_admin' ? 'selected' : '' ?>>Sub Admin</option>
+                    <option value="user" <?= ($filters['role'] ?? '') === 'user' ? 'selected' : '' ?>>Registered User</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
                 <label class="form-label">Start Date</label>
                 <input type="date" name="start_date" class="form-control" value="<?= htmlspecialchars($filters['start_date'] ?? '', ENT_QUOTES) ?>">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">End Date</label>
                 <input type="date" name="end_date" class="form-control" value="<?= htmlspecialchars($filters['end_date'] ?? '', ENT_QUOTES) ?>">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <button type="submit" class="btn btn-primary me-2"><i class="bx bx-search me-1"></i> Search</button>
                 <a href="/comments" class="btn btn-outline-secondary">Clear</a>
             </div>
@@ -63,7 +75,10 @@
                     <?php if (!empty($comments)): ?>
                         <?php foreach ($comments as $comment): ?>
                             <tr>
-                                <td class="fw-medium"><?= htmlspecialchars($comment['author'], ENT_QUOTES, 'UTF-8') ?></td>
+                                <td>
+                                    <span class="fw-medium"><?= htmlspecialchars($comment['author'] ?? 'Anonymous', ENT_QUOTES, 'UTF-8') ?></span>
+                                    <br><small class="text-muted"><?= ucfirst(htmlspecialchars($comment['commenter_role'] ?? 'Guest', ENT_QUOTES, 'UTF-8')) ?></small>
+                                </td>
                                 <td>
                                     <?php if ($comment['status'] === 'approved'): ?>
                                         <span class="badge bg-success-subtle text-success py-1 px-2">Approved</span>
@@ -82,7 +97,7 @@
                                             Actions <i class="mdi mdi-chevron-down"></i>
                                         </button>
                                         <ul class="dropdown-menu">
-                                            <!-- NEW: View Modal Trigger (Adnan's Point #17) -->
+                                            
                                             <li>
                                                 <a class="dropdown-item text-primary fw-medium" href="#" data-bs-toggle="modal" data-bs-target="#viewModal<?= $comment['id'] ?>">
                                                     <i class="bx bx-expand-alt me-1"></i> View & Reply
@@ -105,9 +120,6 @@
                                 </td>
                             </tr>
 
-                            <!-- ============================================== -->
-                            <!-- VIEW & REPLY MODAL (Fulfills Adnan's Point #17)-->
-                            <!-- ============================================== -->
                             <div class="modal fade" id="viewModal<?= $comment['id'] ?>" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-dialog-centered modal-lg">
                                     <div class="modal-content">

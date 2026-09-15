@@ -27,7 +27,7 @@
                             <input type="text" name="title" class="form-control form-control-lg" value="<?= htmlspecialchars($post['title'], ENT_QUOTES, 'UTF-8') ?>" required>
                         </div>
 
-                        <!-- Category Dropdown (4 columns) -->
+                        <!-- Category Dropdown -->
                         <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Category</label>
                             <select name="category_id" class="form-select">
@@ -40,7 +40,7 @@
                             </select>
                         </div>
 
-                        <!-- Post Status Field (4 columns) using Radio Buttons to bypass JS -->
+                        <!-- Post Status Field -->
                         <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold d-block">Status <span class="text-danger">*</span></label>
                             
@@ -56,11 +56,21 @@
                             <div class="form-text text-muted small mt-1">Drafts are hidden from public.</div>
                         </div>
 
-                        <!-- Post Banner Upload (4 columns) -->
+                        <!-- Post Banner Upload -->
                         <div class="col-md-4 mb-3">
-                            <label class="form-label fw-bold">Update Banner Image</label>
-                            <input type="file" class="form-control" name="banner_image" accept="image/jpeg, image/png, image/webp">
-                            <div class="form-text text-muted small">Leave empty to keep current image.</div>
+                            <label class="form-label fw-bold">Upload Post Image</label>
+                            <input type="file" name="image" id="postImage" class="form-control" 
+                                accept="image/png, image/jpeg, image/jpg, image/webp" 
+                                onchange="previewPostImage(event)">
+                            
+                            <!-- Preview Image Tag: Shows existing image if it exists, otherwise hides it -->
+                            <div class="mt-2">
+                                <?php if (!empty($post['banner_image'])): ?>
+                                    <img id="imagePreview" src="<?= htmlspecialchars($post['banner_image'], ENT_QUOTES, 'UTF-8') ?>" alt="Image Preview" style="display: block; max-width: 100%; border-radius: 5px; border: 1px solid #ddd;" />
+                                <?php else: ?>
+                                    <img id="imagePreview" src="" alt="Image Preview" style="display: none; max-width: 100%; border-radius: 5px; border: 1px solid #ddd;" />
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 

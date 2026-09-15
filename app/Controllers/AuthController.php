@@ -127,22 +127,59 @@ class AuthController extends Controller
         $user = \App\Models\User::findByEmail($email);
 
         // 2. Verify the credentials
+        // if ($user && password_verify($password, $user['password'])) {
+            
+        //     \Core\Security\Throttler::clear($throttleKey);
+        //     session_regenerate_id(true); 
+            
+        //     // 1. Set the raw session keys required by the AuthMiddleware
+        //     \Core\Http\Session::set('user_id', $user['id']);
+        //     \Core\Http\Session::set('role', $user['role']);
+            
+        //     // 2. Set the grouped array required by the Profile & Dashboard UI (Now with ACL Permissions)
+        //     $_SESSION['user'] = [
+        //         'id' => $user['id'],
+        //         'username' => $user['username'],
+        //         'email' => $user['email'],
+        //         'role' => $user['role'],
+        //         // Decode the JSON permissions back into a PHP array (defaults to empty array if none)
+        //         'permissions' => json_decode($user['permissions'] ?? '[]', true) ?? []
+        //     ];
+            
+        //     \Core\Http\Session::set('test_auth_status', "Success! Securely logged in as " . $user['username']);
+        //     header("Location: /dashboard");
+        //     exit;
+        // }
+
+        // 2. Verify the credentials
         if ($user && password_verify($password, $user['password'])) {
             
+            // --- NEW PHASE 2 SECURITY BLOCK: Check if deactivated ---
+            if (isset($user['is_active']) && $user['is_active'] == 0) {
+                // Log the event securely
+                \Core\Security\Logger::log('WARNING', 'LOGIN_DENIED', "Deactivated user attempted login: " . $user['email']);
+                
+                // Deny access
+                $_SESSION['error'] = "Your account has been deactivated. Please contact the administrator.";
+                header("Location: /login");
+                exit;
+            }
+            // --------------------------------------------------------
+
             \Core\Security\Throttler::clear($throttleKey);
             session_regenerate_id(true); 
             
-            // 1. Set the raw session keys required by the AuthMiddleware
+            // 1. Set the raw session keys required by AuthMiddleware & AdminMiddleware
             \Core\Http\Session::set('user_id', $user['id']);
             \Core\Http\Session::set('role', $user['role']);
             
-            // 2. Set the grouped array required by the Profile & Dashboard UI (Now with ACL Permissions)
+            // 2. Set the grouped array required by the Profile & Dashboard UI (With ACL Permissions)
             $_SESSION['user'] = [
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'email' => $user['email'],
                 'role' => $user['role'],
-                // Decode the JSON permissions back into a PHP array (defaults to empty array if none)
+                // Decode the JSON permissions back into a PHP array
                 'permissions' => json_decode($user['permissions'] ?? '[]', true) ?? []
             ];
             

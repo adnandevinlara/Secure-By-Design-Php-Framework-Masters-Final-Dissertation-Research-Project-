@@ -9,7 +9,6 @@ use Core\Database\Connection;
 
 class SubAdminController extends Controller
 {
-    // 1. List all Sub-Admins (Adnan's Requirement #2)
     public function index(Request $req, Response $res): void
     {
         // Security Check: Only Super Admins can manage Sub-Admins
@@ -101,6 +100,95 @@ class SubAdminController extends Controller
         ]);
 
         $_SESSION['success'] = "Sub-Admin account created successfully with custom permissions!";
+        header("Location: /subadmins");
+        exit;
+    }
+
+    // 4. Show the Edit Permissions Form
+    public function edit(Request $req, Response $res): void
+    {
+        $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
+        if (!in_array($role, ['admin', 'super admin', 'super_admin'])) {
+            header("Location: /dashboard");
+            exit;
+        }
+
+        $id = $_GET['id'] ?? 0;
+        $db = Connection::getInstance();
+        $stmt = $db->prepare("SELECT id, username, email, permissions FROM users WHERE id = ? AND role = 'sub_admin'");
+        $stmt->execute([$id]);
+        $subadmin = $stmt->fetch();
+
+        if (!$subadmin) {
+            $_SESSION['error'] = "Sub-Admin not found.";
+            header("Location: /subadmins");
+            exit;
+        }
+
+        $html = $this->view->render('edit_subadmin', [
+            'title' => 'Edit Permissions',
+            'subadmin' => $subadmin
+        ]);
+        $res->html($html);
+    }
+
+    // 5. Update Existing Sub-Admin Details & Permissions
+    public function update(Request $req, Response $res): void
+    {
+        $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
+        if (!in_array($role, ['admin', 'super admin', 'super_admin'])) {
+            header("Location: /dashboard");
+            exit;
+        }
+
+        $id = $_POST['user_id'] ?? 0;
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $permissionsArray = $_POST['permissions'] ?? [];
+        
+        if (empty($username) || empty($email)) {
+            $_SESSION['error'] = "Username and email are required.";
+            header("Location: /subadmin/edit?id=" . $id);
+            exit;
+        }
+
+        $db = Connection::getInstance();
+
+        // Security: Make sure the new email isn't already taken by someone else!
+        $stmt = $db->prepare("SELECT id FROM users WHERE email = :email AND id != :id");
+        $stmt->execute([':email' => $email, ':id' => $id]);
+        if ($stmt->fetch()) {
+            $_SESSION['error'] = "Another user is already using that email address.";
+            header("Location: /subadmin/edit?id=" . $id);
+            exit;
+        }
+
+        $permissionsJson = json_encode($permissionsArray);
+
+        // If they typed a new password, hash it and update everything
+        if (!empty($password)) {
+            $hashedPassword = password_hash($password, PASSWORD_ARGON2ID);
+            $stmt = $db->prepare("UPDATE users SET username = :username, email = :email, password = :password, permissions = :permissions WHERE id = :id AND role = 'sub_admin'");
+            $stmt->execute([
+                ':username' => $username,
+                ':email' => $email,
+                ':password' => $hashedPassword,
+                ':permissions' => $permissionsJson,
+                ':id' => $id
+            ]);
+        } else {
+            // Otherwise, update everything EXCEPT the password
+            $stmt = $db->prepare("UPDATE users SET username = :username, email = :email, permissions = :permissions WHERE id = :id AND role = 'sub_admin'");
+            $stmt->execute([
+                ':username' => $username,
+                ':email' => $email,
+                ':permissions' => $permissionsJson,
+                ':id' => $id
+            ]);
+        }
+
+        $_SESSION['success'] = "Sub-Admin details and permissions successfully updated!";
         header("Location: /subadmins");
         exit;
     }

@@ -49,7 +49,9 @@
                                         </td>
                                         <td><?= date('M d, Y', strtotime($admin['created_at'])) ?></td>
                                         <td>
-                                            <button class="btn btn-sm btn-outline-secondary" disabled>Edit (Demo)</button>
+                                            <a href="/subadmin/edit?id=<?= $admin['id'] ?>" class="btn btn-sm btn-outline-primary">
+                                                <i class="bx bx-edit"></i> Edit Perms
+                                            </a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
