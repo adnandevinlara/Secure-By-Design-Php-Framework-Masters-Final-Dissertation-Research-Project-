@@ -82,3 +82,4 @@
 [2026-09-14T19:49:52+00:00] [WARNING] [FAILED_LOGIN] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Failed login attempt for email: mail.imdadullah@gmail.com
 [2026-09-14T19:55:41+00:00] [CRITICAL] [CSRF_BLOCKED] [IP: 172.18.0.1] [UID: Guest] [POST /comment/store] - A state-changing request failed token validation and was intercepted.
 [2026-09-14T20:21:32+00:00] [WARNING] [LOGIN_DENIED] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Deactivated user attempted login: newsubadmin@gmail.com
+[2026-09-15T22:35:28+00:00] [WARNING] [FAILED_LOGIN] [IP: 172.18.0.1] [UID: Guest] [POST /login] - Failed login attempt for email: subadmin@gmail.com
