@@ -24,9 +24,13 @@
                     <?= \Core\Security\Csrf::getFormField() ?? '' ?>
                     
                     <div class="mb-4">
-                        <label class="form-label fw-bold">Category Name <span class="text-danger">*</span></label>
+                        <!-- <label class="form-label fw-bold">Category Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control form-control-lg" required placeholder="e.g., Cyber Security">
-                        <div class="form-text">This will appear in the blog sidebar.</div>
+                        <div class="form-text">This will appear in the blog sidebar.</div> -->
+
+                        <label>Category Name</label>
+                        <input type="text" name="name" id="category_name" class="form-control" required autocomplete="off">
+                        <span id="name_error" class="text-danger" style="display:none; font-size: 0.9em; margin-top: 5px;">⚠️ This category already exists!</span>
                     </div>
 
                     <div class="mb-4">
@@ -45,6 +49,42 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const nameInput = document.getElementById('category_name');
+    const errorSpan = document.getElementById('name_error');
+    
+    // Replace 'submit_btn' with the actual ID of your form's submit button
+    const submitBtn = document.querySelector('button[type="submit"]'); 
+
+    nameInput.addEventListener('keyup', function() {
+        let name = this.value.trim();
+        
+        if(name.length > 0) {
+            fetch('/category/check-name', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'name=' + encodeURIComponent(name)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.exists) {
+                    errorSpan.style.display = 'block';
+                    submitBtn.disabled = true; // Lock the button
+                } else {
+                    errorSpan.style.display = 'none';
+                    submitBtn.disabled = false; // Unlock the button
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        } else {
+            errorSpan.style.display = 'none';
+            submitBtn.disabled = false;
+        }
+    });
+});
+</script>
 
 <?php 
 $content = ob_get_clean(); 

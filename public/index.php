@@ -505,6 +505,15 @@ $router->post('/subadmin/update', function (\Core\Http\Request $req, \Core\Http\
     $controller->update($req, $res);
 });
 
+// AJAX Route for checking duplicate category names
+$router->post('/category/check-name', function (\Core\Http\Request $req, \Core\Http\Response $res) {
+    // 🔒 Secure the route so unauthenticated users cannot hit your database
+    \Core\Middleware\AuthMiddleware::handle(); 
+    
+    $controller = new \App\Controllers\CategoryController();
+    $controller->checkName($req, $res);
+});
+
 // // TEMPORARY ADMIN ELEVATION ROUTE
 // $router->get('/make-admin', function () {
 //     $db = \Core\Database\Connection::getInstance();

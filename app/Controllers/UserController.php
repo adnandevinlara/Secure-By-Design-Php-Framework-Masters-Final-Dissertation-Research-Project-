@@ -13,7 +13,7 @@ class UserController extends Controller
     private function getAcl() {
         $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
         return [
-            'isAdmin' => in_array($role, ['admin', 'super admin', 'super_admin']),
+            'isAdmin' => in_array($role, ['admin', 'super admin', 'super_admin', 'administrator']),
             'isSubAdmin' => $role === 'sub_admin',
             'perms' => $_SESSION['user']['permissions'] ?? []
         ];
@@ -36,7 +36,7 @@ class UserController extends Controller
         $roleFilter = $_GET['role'] ?? '';
         $params = [];
 
-        // Base query - Added is_active to the SELECT statement
+        // Base query
         $query = "SELECT id, username, email, role, is_active, created_at FROM users WHERE 1=1";
 
         // SECURITY: Hide Super Admins from Sub-Admins
@@ -50,9 +50,26 @@ class UserController extends Controller
             $params[] = (int) $statusFilter;
         }
 
-        // Apply Role Filter (Ensure SubAdmins can't trick the filter into showing SuperAdmins)
+        // Apply Bulletproof Role Filter
         if ($roleFilter !== '') {
-            if ($isAdmin || !in_array(strtolower($roleFilter), ['admin', 'super admin', 'super_admin'])) {
+            $normalizedRole = strtolower(trim($roleFilter));
+            
+            // If UI sends "SuperAdmin"
+            if (in_array($normalizedRole, ['superadmin', 'admin', 'super_admin', 'super admin'])) {
+                if ($isAdmin) { // Only Admins can search for Admins
+                    $query .= " AND role IN ('admin', 'super_admin', 'super admin', 'administrator')";
+                }
+            } 
+            // If UI sends "SubAdmin"
+            elseif (in_array($normalizedRole, ['subadmin', 'sub_admin', 'sub admin'])) {
+                $query .= " AND role IN ('sub_admin', 'sub admin')";
+            } 
+            // Standard User
+            elseif ($normalizedRole === 'user') {
+                $query .= " AND role = 'user'";
+            } 
+            // Fallback
+            else {
                 $query .= " AND role = ?";
                 $params[] = $roleFilter;
             }
@@ -72,7 +89,7 @@ class UserController extends Controller
         $res->html($html);
     }
 
-    // Securely delete a user with Cascading Data/Image Deletion
+    // Securely delete a user with conditional Cascading or Reassignment 
     public function delete(Request $req, Response $res): void
     {
         extract($this->getAcl());
@@ -87,7 +104,7 @@ class UserController extends Controller
         $userIdToDelete = (int) ($_POST['user_id'] ?? 0);
         $currentUserId = (int) ($_SESSION['user']['id'] ?? 0);
 
-        // 2. SELF-DELETION SAFEGUARD
+        // 2. SELF-DELETION SAFEGUARD 
         if ($userIdToDelete === $currentUserId || $userIdToDelete === 0) {
             $_SESSION['error'] = "Security Exception: You cannot delete your own account.";
             header("Location: /users");
@@ -96,7 +113,6 @@ class UserController extends Controller
 
         $db = Connection::getInstance();
 
-        // 3. Prevent Sub-Admins from deleting Super Admins
         $stmt = $db->prepare("SELECT role FROM users WHERE id = ?");
         $stmt->execute([$userIdToDelete]);
         $targetUser = $stmt->fetch();
@@ -107,13 +123,36 @@ class UserController extends Controller
             exit;
         }
 
-        if (!$isAdmin && in_array(strtolower($targetUser['role']), ['admin', 'super admin', 'super_admin'])) {
+        // Prevent Sub-Admins from deleting Super Admins
+        if (!$isAdmin && in_array(strtolower($targetUser['role']), ['admin', 'super admin', 'super_admin', 'administrator'])) {
             $_SESSION['error'] = "Security Exception: Sub-Admins cannot delete Super Admin accounts.";
             header("Location: /users");
             exit;
         }
 
-        // 4. CASCADING IMAGE DELETION (Freeing Server Space)
+        // --- SUB-ADMIN REASSIGNMENT LOGIC ---
+        if (in_array(strtolower($targetUser['role']), ['sub_admin', 'sub admin', 'subadmin'])) {
+            // Transfer Posts
+            $db->prepare("UPDATE posts SET author_id = ? WHERE author_id = ?")->execute([$currentUserId, $userIdToDelete]);
+            
+            // Transfer Comments (trying both common column names safely)
+            try { $db->prepare("UPDATE comments SET user_id = ? WHERE user_id = ?")->execute([$currentUserId, $userIdToDelete]); } catch (\PDOException $e) {}
+            try { $db->prepare("UPDATE comments SET author_id = ? WHERE author_id = ?")->execute([$currentUserId, $userIdToDelete]); } catch (\PDOException $e) {}
+            
+            // Transfer Categories
+            try { $db->prepare("UPDATE categories SET user_id = ? WHERE user_id = ?")->execute([$currentUserId, $userIdToDelete]); } catch (\PDOException $e) {}
+            try { $db->prepare("UPDATE categories SET author_id = ? WHERE author_id = ?")->execute([$currentUserId, $userIdToDelete]); } catch (\PDOException $e) {}
+
+            // Delete the SubAdmin
+            $db->prepare("DELETE FROM users WHERE id = ?")->execute([$userIdToDelete]);
+
+            $_SESSION['success'] = "SubAdmin deleted successfully. All their posts, comments, and categories have been reassigned to you.";
+            header("Location: /users");
+            exit;
+        }
+
+        // --- STANDARD USER CASCADING DELETION LOGIC ---
+        // 4. Freeing Server Space (Images)
         $stmtPosts = $db->prepare("SELECT banner_image FROM posts WHERE author_id = ?");
         $stmtPosts->execute([$userIdToDelete]);
         $posts = $stmtPosts->fetchAll();
@@ -127,23 +166,13 @@ class UserController extends Controller
             }
         }
 
-        // 5. CASCADING DATABASE DELETION
-        // Delete comments belonging to the user's posts first
+        // 5. Delete database records
         $db->prepare("DELETE FROM comments WHERE post_id IN (SELECT id FROM posts WHERE author_id = ?)")->execute([$userIdToDelete]);
-        
-        // Delete their categories (Using author_id, with a safety net)
-        try {
-            $db->prepare("DELETE FROM categories WHERE author_id = ?")->execute([$userIdToDelete]);
-        } catch (\PDOException $e) {
-            // Safely ignore if the categories table does not track user ownership
-        }
-
-        // Delete their posts
+        try { $db->prepare("DELETE FROM comments WHERE user_id = ?")->execute([$userIdToDelete]); } catch (\PDOException $e) { }
+        try { $db->prepare("DELETE FROM categories WHERE user_id = ?")->execute([$userIdToDelete]); } catch (\PDOException $e) { }
         $db->prepare("DELETE FROM posts WHERE author_id = ?")->execute([$userIdToDelete]);
         
-        // Finally, delete the user
-        $stmtUser = $db->prepare("DELETE FROM users WHERE id = ?");
-        $stmtUser->execute([$userIdToDelete]);
+        $db->prepare("DELETE FROM users WHERE id = ?")->execute([$userIdToDelete]);
 
         $_SESSION['success'] = "User and all associated data (posts, comments, categories, and images) successfully deleted.";
         header("Location: /users");
@@ -206,13 +235,19 @@ class UserController extends Controller
         $res->html($html);
     }
 
-    // Process Password Change
+    // Process Password Change 
     public function updatePassword(Request $req, Response $res): void
     {
         $currentPassword = $_POST['current_password'] ?? '';
         $newPassword = $_POST['new_password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
-        $userId = $_SESSION['user']['id'] ?? 0;
+        $userId = (int) ($_SESSION['user']['id'] ?? 0);
+
+        if ($userId === 0) {
+            $_SESSION['error'] = "Session expired. Please log in again.";
+            header("Location: /login");
+            exit;
+        }
 
         if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
             $_SESSION['error'] = "All fields are required.";
@@ -249,8 +284,11 @@ class UserController extends Controller
         $updateStmt = $db->prepare("UPDATE users SET password = :password WHERE id = :id");
         $updateStmt->execute([':password' => $hashedPassword, ':id' => $userId]);
 
+        // Support for both standard success flash and the new Modal
         $_SESSION['success'] = "Password successfully updated!";
-        header("Location: /dashboard"); // Send them back to their dashboard
+        $_SESSION['password_updated_modal'] = "Password updated successfully"; 
+        
+        header("Location: /change-password"); // Stay on the same page to see the modal!
         exit;
     }
 }

@@ -9,41 +9,49 @@ use Core\Database\Connection;
 
 class CategoryController extends Controller
 {
-    // Helper to extract ACL permissions cleanly
     private function getAcl() {
-        $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
+        $role = strtolower(trim($_SESSION['user']['role'] ?? 'guest'));
         return [
-            'isAdmin' => in_array($role, ['admin', 'super admin', 'super_admin']),
+            'isAdmin' => in_array($role, ['admin', 'super admin', 'super_admin', 'administrator']),
             'isSubAdmin' => $role === 'sub_admin',
-            'perms' => $_SESSION['user']['permissions'] ?? []
+            'isUser' => $role === 'user',
+            'perms' => $_SESSION['user']['permissions'] ?? [],
+            'userId' => (int) ($_SESSION['user']['id'] ?? 0)
         ];
     }
 
-    // Centralized Security Check
-    private function checkAccess() {
+    private function checkAccess($requiredAction = 'view_categories') {
         extract($this->getAcl());
         
-        // 1. Block Regular Users completely
-        if (!$isAdmin && !$isSubAdmin) {
-            $_SESSION['error'] = "Access Denied: Only administrators can manage categories.";
-            header("Location: /dashboard");
+        if ($userId === 0) {
+            $_SESSION['error'] = "Session expired. Please log in again.";
+            header("Location: /login");
             exit;
+        }
+
+        if ($isAdmin) return true; 
+
+        if ($isUser) {
+            if ($requiredAction === 'edit_categories' || $requiredAction === 'delete_categories') {
+                $_SESSION['error'] = "Security Exception: Standard users cannot edit or delete global categories.";
+                header("Location: /categories");
+                exit;
+            }
+            return true; 
         }
         
-        // 2. Block SubAdmins if they don't have specific category permissions
-        // (Since we didn't add this to the UI, ALL SubAdmins will currently be blocked from categories!)
-        if ($isSubAdmin && !in_array('manage_categories', $perms)) {
-            $_SESSION['error'] = "Access Denied: You are restricted from accessing the Categories module.";
-            header("Location: /dashboard");
-            exit;
+        if ($isSubAdmin) {
+            return true; // Bypass until UI is built
         }
+        
+        $_SESSION['error'] = "Access Denied.";
+        header("Location: /dashboard");
+        exit;
     }
 
-    // 1. Listing Page (READ)
     public function index(Request $req, Response $res): void
     {
-        $this->checkAccess(); // 🔒 SECURITY LOCK
-
+        $this->checkAccess('view_categories'); 
         $db = Connection::getInstance();
         $name = $_GET['name'] ?? '';
         $status = $_GET['status'] ?? '';
@@ -73,66 +81,58 @@ class CategoryController extends Controller
         $res->html($html);
     }
 
-    // 2. Separate Form Page (CREATE)
     public function create(Request $req, Response $res): void
     {
-        $this->checkAccess(); // 🔒 SECURITY LOCK
-
+        $this->checkAccess('create_categories'); 
         $html = $this->view->render('categories/create', [
             'title' => 'Secure CMS | Create Category'
         ]);
         $res->html($html);
     }
 
-    // 3. Handle New Category Submission
+    // AJAX Endpoint to check if category exists
+    public function checkName(Request $req, Response $res): void
+    {
+        $name = trim($_POST['name'] ?? '');
+        if (empty($name)) {
+            echo json_encode(['exists' => false]);
+            exit;
+        }
+
+        $db = Connection::getInstance();
+        $stmt = $db->prepare("SELECT COUNT(*) FROM categories WHERE LOWER(name) = LOWER(:name) AND is_deleted = 0");
+        $stmt->execute([':name' => $name]);
+        $count = $stmt->fetchColumn();
+
+        echo json_encode(['exists' => $count > 0]);
+        exit;
+    }
+
     public function store(Request $req, Response $res): void
     {
-        $this->checkAccess(); // 🔒 SECURITY LOCK
+        $this->checkAccess('create_categories'); 
 
         $name = trim($_POST['name'] ?? '');
         $status = $_POST['status'] ?? 'show'; 
-        $ip = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
-        $user = $_SESSION['user']['username'] ?? 'Guest';
-
+        
         if (empty($name)) {
             $_SESSION['error'] = "Category name is required.";
             header("Location: /category/create");
             exit;
         }
 
-        // --- LAYER 2: THE INSECURE CODE TRAP ---
-        $isMalicious = false;
-        $eventType = '';
+        $db = Connection::getInstance();
 
-        if (preg_match('/(<script>|onload=|onerror=|javascript:)/i', $name)) {
-            $isMalicious = true;
-            $eventType = 'XSS_PAYLOAD_DETECTED';
-        } elseif (preg_match('/(DROP TABLE|UNION SELECT|--;|OR 1=1)/i', $name)) {
-            $isMalicious = true;
-            $eventType = 'SQLI_PAYLOAD_DETECTED';
-        }
-
-        if ($isMalicious) {
-            $db = Connection::getInstance();
-            $stmt = $db->prepare("INSERT INTO security_logs (event_type, ip_address, user, details, severity, request_url, description, timestamp) VALUES (:event_type, :ip, :user, :details, :severity, :request_url, :description, :timestamp)");
-            $stmt->execute([
-                ':event_type' => $eventType,
-                ':ip' => $ip,
-                ':user' => $user,
-                ':details' => 'Blocked payload on POST /category/store',
-                ':severity' => 'CRITICAL',
-                ':request_url' => $_SERVER['REQUEST_URI'] ?? '/category/store',
-                ':description' => 'Blocked malicious payload on Category creation',
-                ':timestamp' => date('Y-m-d H:i:s')
-            ]);
-
-            $_SESSION['error'] = "SECURITY INTERVENTION: Malicious payload detected. Action logged.";
+        // Server-Side Duplicate Check
+        $stmtCheck = $db->prepare("SELECT COUNT(*) FROM categories WHERE LOWER(name) = LOWER(:name) AND is_deleted = 0");
+        $stmtCheck->execute([':name' => $name]);
+        if ($stmtCheck->fetchColumn() > 0) {
+            $_SESSION['error'] = "The category '{$name}' already exists. Please choose a different name.";
             header("Location: /category/create");
             exit;
         }
 
-        // --- SAFE EXECUTION ---
-        $db = Connection::getInstance();
+        // --- Safe Execution ---
         $stmt = $db->prepare("INSERT INTO categories (name, status) VALUES (:name, :status)");
         $stmt->execute([
             ':name' => htmlspecialchars($name, ENT_QUOTES, 'UTF-8'),
@@ -144,11 +144,9 @@ class CategoryController extends Controller
         exit;
     }
 
-    // 4. Toggle Status (HIDE/SHOW)
     public function updateStatus(Request $req, Response $res): void
     {
-        $this->checkAccess(); // 🔒 SECURITY LOCK
-
+        $this->checkAccess('edit_categories'); 
         $id = $_POST['category_id'] ?? 0;
         $status = $_POST['status'] ?? 'show';
 
@@ -161,14 +159,23 @@ class CategoryController extends Controller
         exit;
     }
 
-    // 5. Delete Category (Soft Delete)
     public function delete(Request $req, Response $res): void
     {
-        $this->checkAccess(); // 🔒 SECURITY LOCK
-
+        $this->checkAccess('delete_categories'); 
         $id = $_POST['category_id'] ?? 0;
         $db = Connection::getInstance();
         
+        // RULE 3: Protect categories assigned to posts
+        $stmtCheck = $db->prepare("SELECT COUNT(*) FROM posts WHERE category_id = :id");
+        $stmtCheck->execute([':id' => $id]);
+        
+        if ($stmtCheck->fetchColumn() > 0) {
+            $_SESSION['error'] = "Cannot delete: This category is currently assigned to one or more posts. Reassign the posts first.";
+            header("Location: /categories");
+            exit;
+        }
+        
+        // Safe to delete
         $stmt = $db->prepare("UPDATE categories SET is_deleted = 1 WHERE id = :id");
         $stmt->execute([':id' => $id]);
 

@@ -61,8 +61,8 @@ class HomeController
         $stmt->execute();
         $posts = $stmt->fetchAll();
 
-        // Fetch categories for the public sidebar (Only active, non-deleted ones!)
-        $categories = $db->query("SELECT * FROM categories WHERE status = 'show' AND is_deleted = 0 ORDER BY name ASC")->fetchAll();
+        // Fetch UNIQUE categories for the public sidebar 
+        $categories = $db->query("SELECT MIN(id) as id, name FROM categories WHERE status = 'show' AND is_deleted = 0 GROUP BY name ORDER BY name ASC")->fetchAll();
 
         // Render the public home view
         $html = $this->view->render('home', [
@@ -76,7 +76,7 @@ class HomeController
         $res->html($html);
     }
 
-    // 2. Handle the Search functionality (Updated to only search 'Published' posts)
+    // 2. Handle the Search functionality
     public function search(Request $req, Response $res): void
     {
         $db = Connection::getInstance();
@@ -94,15 +94,15 @@ class HomeController
         $stmt->execute(['q' => "%$query%"]);
         $posts = $stmt->fetchAll();
 
-        // Fetch categories for the public sidebar
-        $categories = $db->query("SELECT * FROM categories ORDER BY name ASC")->fetchAll();
+        // Fetch UNIQUE categories for the public sidebar
+        $categories = $db->query("SELECT MIN(id) as id, name FROM categories WHERE status = 'show' AND is_deleted = 0 GROUP BY name ORDER BY name ASC")->fetchAll();
 
         $html = $this->view->render('home', [
             'title' => 'Search Results: ' . htmlspecialchars($query),
             'posts' => $posts,
             'categories' => $categories,
             'currentPage' => 1,
-            'totalPages' => 1, // Simplified pagination for search results
+            'totalPages' => 1, 
             'searchQuery' => $query
         ]);
         $res->html($html);
@@ -119,7 +119,7 @@ class HomeController
             return;
         }
 
-        // Securely fetch a single post (Must be published!)
+        // Securely fetch a single post
         $stmt = $db->prepare("
             SELECT posts.*, categories.name AS category_name, users.username AS author_name 
             FROM posts 
@@ -145,8 +145,8 @@ class HomeController
         $stmtComments->execute(['post_id' => $id]);
         $approvedComments = $stmtComments->fetchAll();
 
-        // Fetch categories for the public sidebar
-        $categories = $db->query("SELECT * FROM categories ORDER BY name ASC")->fetchAll();
+        // Fetch UNIQUE categories for the public sidebar 
+        $categories = $db->query("SELECT MIN(id) as id, name FROM categories WHERE status = 'show' AND is_deleted = 0 GROUP BY name ORDER BY name ASC")->fetchAll();
 
         $html = $this->view->render('post_details', [
             'title' => htmlspecialchars($post['title']),

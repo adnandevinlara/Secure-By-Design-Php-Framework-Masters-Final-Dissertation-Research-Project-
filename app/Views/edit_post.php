@@ -59,16 +59,17 @@
                         <!-- Post Banner Upload -->
                         <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Upload Post Image</label>
-                            <input type="file" name="image" id="postImage" class="form-control" 
-                                accept="image/png, image/jpeg, image/jpg, image/webp" 
-                                onchange="previewPostImage(event)">
-                            
-                            <!-- Preview Image Tag: Shows existing image if it exists, otherwise hides it -->
-                            <div class="mt-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <!-- Changed name from 'image' to 'banner_image' -->
+                                <input type="file" name="banner_image" id="postImage" class="form-control" 
+                                    accept="image/png, image/jpeg, image/jpg, image/webp" 
+                                    onchange="previewPostImage(event)">
+                                
+                                <!-- Small Inline Preview Tag: Shows existing image if it exists -->
                                 <?php if (!empty($post['banner_image'])): ?>
-                                    <img id="imagePreview" src="<?= htmlspecialchars($post['banner_image'], ENT_QUOTES, 'UTF-8') ?>" alt="Image Preview" style="display: block; max-width: 100%; border-radius: 5px; border: 1px solid #ddd;" />
+                                    <img id="imagePreview" src="<?= htmlspecialchars($post['banner_image'], ENT_QUOTES, 'UTF-8') ?>" alt="Preview" style="display: block; width: 45px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;" />
                                 <?php else: ?>
-                                    <img id="imagePreview" src="" alt="Image Preview" style="display: none; max-width: 100%; border-radius: 5px; border: 1px solid #ddd;" />
+                                    <img id="imagePreview" src="" alt="Preview" style="display: none; width: 45px; height: 45px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;" />
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -87,6 +88,19 @@
         </div>
     </div>
 </div>
+
+<script>
+// Logic to show the small inline image preview
+function previewPostImage(event) {
+    const reader = new FileReader();
+    reader.onload = function(){
+        const output = document.getElementById('imagePreview');
+        output.src = reader.result;
+        output.style.display = 'block';
+    };
+    reader.readAsDataURL(event.target.files[0]);
+}
+</script>
 
 <?php 
 $content = ob_get_clean(); 
