@@ -11,6 +11,27 @@
     </div>
 </div>
 
+<!-- Display Session Errors and Success Messages Here -->
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger shadow-sm border-0 alert-dismissible fade show" role="alert">
+                <i class="bx bx-error-circle me-2"></i><strong>Error:</strong> <?= $_SESSION['error']; ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="alert alert-success shadow-sm border-0 alert-dismissible fade show" role="alert">
+                <i class="bx bx-check-circle me-2"></i><strong>Success:</strong> <?= $_SESSION['success']; ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
+    </div>
+</div>
+
 <div class="row justify-content-center">
     <div class="col-lg-10">
         <div class="card shadow-sm border-0">
@@ -55,7 +76,6 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Upload Post Image</label>
                             <div class="d-flex align-items-center gap-2">
-                                <!-- Changed name from 'image' to 'banner_image' so controller finds it -->
                                 <input type="file" name="banner_image" id="postImage" class="form-control" 
                                     accept="image/png, image/jpeg, image/jpg, image/webp" 
                                     onchange="previewPostImage(event)" required>
@@ -72,7 +92,6 @@
                     </div>
 
                     <div class="text-end mt-4 d-flex justify-content-end align-items-center">
-                        <!-- POINT 44: Red XSS Injection Testing Button -->
                         <button type="button" class="btn btn-danger btn-lg px-4 me-3" onclick="injectMaliciousCode()">
                             <i class="bx bx-bug me-1"></i> Push XSS Payload
                         </button>
@@ -86,7 +105,6 @@
 </div>
 
 <script>
-// Logic to show the small inline image preview
 function previewPostImage(event) {
     const reader = new FileReader();
     reader.onload = function(){
@@ -97,7 +115,6 @@ function previewPostImage(event) {
     reader.readAsDataURL(event.target.files[0]);
 }
 
-// POINT 44: XSS Injection Script
 function injectMaliciousCode() {
     const titleInput = document.querySelector('input[name="title"]');
     if (titleInput) {
@@ -106,8 +123,6 @@ function injectMaliciousCode() {
 
     const contentArea = document.querySelector('textarea[name="content"]');
     if (contentArea) {
-        // Works even if Summernote/WYSIWYG is active by targeting its code view if needed, 
-        // but raw textarea injection tests the backend parser.
         contentArea.value = 'Attempting XSS: <img src="x" onerror="alert(\'XSS Execution in Content\')">';
     }
     

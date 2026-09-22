@@ -9,33 +9,65 @@ use Core\Database\Connection;
 
 class CommentController extends Controller
 {
-    // Helper to extract ACL permissions cleanly
     private function getAcl() {
         $role = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
         return [
-            'isAdmin' => in_array($role, ['admin', 'super admin', 'super_admin']),
+            'isAdmin' => in_array($role, ['admin', 'super admin', 'super_admin', 'administrator']),
             'isSubAdmin' => $role === 'sub_admin',
-            'perms' => $_SESSION['user']['permissions'] ?? []
+            'isUser' => $role === 'user',
+            'perms' => $_SESSION['user']['permissions'] ?? [],
+            'userId' => (int)($_SESSION['user']['id'] ?? 0)
         ];
     }
 
-    // 1. List Comments (Data Isolated!)
-    // 1. List Comments (Data Isolated & Filtered)
+    // Strict Centralized RBAC (Updated for Read-Only Default Access)
+    private function checkAccess($requiredAction = 'view_comments') {
+        extract($this->getAcl());
+        
+        if ($userId === 0) {
+            $_SESSION['error'] = "Session expired.";
+            header("Location: /login");
+            exit;
+        }
+
+        if ($isAdmin) return true;
+        if ($isUser) return true; // Handled strictly by SQL ownership checks in the methods
+
+        if ($isSubAdmin) {
+            // 1. ALWAYS allow them to open the page (Read-Only access by default)
+            if ($requiredAction === 'view_comments') {
+                return true;
+            }
+            
+            // 2. If they try to click Edit, Delete, or Reply without permission, block them!
+            if (!in_array($requiredAction, $perms)) {
+                $_SESSION['error'] = "Access Denied: You do not have permission to moderate, edit, or reply to comments.";
+                // Send them right back to the comments page to see the error
+                header("Location: /comments"); 
+                exit;
+            }
+            return true;
+        }
+        
+        $_SESSION['error'] = "Access Denied.";
+        header("Location: /dashboard");
+        exit;
+    }
+
     public function index(Request $req, Response $res): void
     {
+        $this->checkAccess('view_comments');
         $db = Connection::getInstance();
-        $userId = $_SESSION['user']['id'] ?? 0;
         extract($this->getAcl());
 
         $status = $_GET['status'] ?? '';
         $startDate = $_GET['start_date'] ?? '';
         $endDate = $_GET['end_date'] ?? '';
-        $role = $_GET['role'] ?? ''; // 🆕 Grab the role filter
+        $role = $_GET['role'] ?? ''; 
 
-        // Data Scope: Can they see EVERYONE'S comments, or just comments on THEIR posts?
+        // If they lack 'view_comments', this becomes false, and they only see their OWN comments
         $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('view_comments', $perms));
 
-        // 🆕 JOIN with users table to get the commenter's role
         $query = "
             SELECT c.*, p.title AS post_title, p.author_id, u.role AS commenter_role
             FROM comments c
@@ -46,7 +78,7 @@ class CommentController extends Controller
         
         $params = [];
 
-        // STRICT ISOLATION: If not global admin, lock down to ONLY their own posts
+        // STRICT ISOLATION
         if (!$hasGlobalAccess) {
             $query .= " AND p.author_id = :user_id";
             $params[':user_id'] = $userId;
@@ -64,7 +96,6 @@ class CommentController extends Controller
             $query .= " AND date(c.created_at) <= :end_date";
             $params[':end_date'] = $endDate;
         }
-        // 🆕 Apply the User Type Filter
         if (!empty($role)) {
             $query .= " AND u.role = :role";
             $params[':role'] = $role;
@@ -83,13 +114,13 @@ class CommentController extends Controller
                 'status' => $status, 
                 'start_date' => $startDate, 
                 'end_date' => $endDate,
-                'role' => $role // 🆕 Pass filter back to view
+                'role' => $role
             ]
         ]);
         $res->html($html);
     }
 
-    // 2. Add New Comment (Public Frontend)
+    // Add New Comment (Public Frontend - Anyone logged in can do this)
     public function store(Request $req, Response $res): void
     {
         $postId = $_POST['post_id'] ?? 0;
@@ -136,15 +167,14 @@ class CommentController extends Controller
 
     public function updateStatus(Request $req, Response $res): void
     {
-        $commentId = $_POST['comment_id'] ?? 0;
-        $newStatus = $_POST['status'] ?? 'approved';
-        $userId = $_SESSION['user']['id'] ?? 0;
+        $this->checkAccess('status_comment');
         extract($this->getAcl());
 
+        $commentId = $_POST['comment_id'] ?? 0;
+        $newStatus = $_POST['status'] ?? 'approved';
         $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('status_comment', $perms));
         $db = Connection::getInstance();
 
-        // Security Check: Verify ownership before updating
         $stmt = $db->prepare("SELECT p.author_id FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = :id");
         $stmt->execute([':id' => $commentId]);
         $ownerId = $stmt->fetchColumn();
@@ -163,17 +193,15 @@ class CommentController extends Controller
         exit;
     }
 
-    // 4. Delete Comment
     public function delete(Request $req, Response $res): void
     {
-        $commentId = $_POST['comment_id'] ?? 0;
-        $userId = $_SESSION['user']['id'] ?? 0;
+        $this->checkAccess('delete_comment');
         extract($this->getAcl());
-
+        
+        $commentId = $_POST['comment_id'] ?? 0;
         $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('delete_comment', $perms));
         $db = Connection::getInstance();
 
-        // Security Check: Verify ownership before deleting
         $stmt = $db->prepare("SELECT p.author_id FROM comments c JOIN posts p ON c.post_id = p.id WHERE c.id = :id");
         $stmt->execute([':id' => $commentId]);
         $ownerId = $stmt->fetchColumn();
@@ -194,12 +222,13 @@ class CommentController extends Controller
 
     public function reply(Request $req, Response $res): void
     {
+        $this->checkAccess('reply_comment');
+        extract($this->getAcl());
+
         $commentId = $_POST['comment_id'] ?? 0;
         $postId = $_POST['post_id'] ?? 0;
         $replyContent = trim($_POST['reply_content'] ?? '');
-        $userId = $_SESSION['user']['id'] ?? 0;
         $authorName = $_SESSION['user']['username'] ?? 'Author';
-        extract($this->getAcl());
 
         if (empty($replyContent)) {
             $_SESSION['error'] = "Reply cannot be empty.";
@@ -210,7 +239,6 @@ class CommentController extends Controller
         $hasGlobalAccess = $isAdmin || ($isSubAdmin && in_array('status_comment', $perms));
         $db = Connection::getInstance();
 
-        // STRICT ISOLATION: Verify they own the post they are replying to
         $stmt = $db->prepare("SELECT author_id FROM posts WHERE id = :post_id");
         $stmt->execute([':post_id' => $postId]);
         $postOwnerId = $stmt->fetchColumn();
@@ -221,7 +249,6 @@ class CommentController extends Controller
             exit;
         }
 
-        // Insert the reply as a pre-approved comment
         $insertStmt = $db->prepare("
             INSERT INTO comments (post_id, author_id, author, content, status) 
             VALUES (:post_id, :author_id, :author, :content, 'approved')
@@ -233,7 +260,6 @@ class CommentController extends Controller
             ':content' => htmlspecialchars($replyContent, ENT_QUOTES, 'UTF-8')
         ]);
 
-        // Mark the original comment as replied
         $updateStmt = $db->prepare("UPDATE comments SET is_replied = 1 WHERE id = :comment_id");
         $updateStmt->execute([':comment_id' => $commentId]);
 

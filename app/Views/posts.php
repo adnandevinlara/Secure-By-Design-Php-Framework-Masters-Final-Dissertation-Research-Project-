@@ -1,21 +1,34 @@
-<?php ob_start(); ?>
+<?php ob_start(); 
+// --- ACL Setup for the View ---
+$userRole = strtolower(trim($_SESSION['user']['role'] ?? 'user'));
+$isAdmin = in_array($userRole, ['admin', 'super admin', 'super_admin', 'administrator']);
+$isSubAdmin = $userRole === 'sub_admin';
+$isUser = $userRole === 'user';
+$perms = $_SESSION['user']['permissions'] ?? [];
+$currentUserId = (int)($_SESSION['user']['id'] ?? 0);
+
+// Global UI Permissions
+$canCreatePost = $isAdmin || $isUser || ($isSubAdmin && in_array('create_blog', $perms));
+?>
 
 <div class="row">
     <div class="col-12">
         <div class="page-title-box d-sm-flex align-items-center justify-content-between mb-4">
             <h4 class="mb-sm-0 font-size-18"><i class="bx bx-file me-2"></i>Blog Posts Management</h4>
             <div class="page-title-right">
-                <a href="/post/create" class="btn btn-primary"><i class="bx bx-plus me-1"></i> Create New Post</a>
+                <?php if ($canCreatePost): ?>
+                    <a href="/post/create" class="btn btn-primary"><i class="bx bx-plus me-1"></i> Create New Post</a>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
 
 <?php if (isset($_SESSION['success'])): ?>
-    <div class="alert alert-success shadow-sm border-0"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
+    <div class="alert alert-success shadow-sm border-0 alert-dismissible fade show"><i class="bx bx-check-circle me-2"></i><?= $_SESSION['success']; unset($_SESSION['success']); ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 <?php endif; ?>
 <?php if (isset($_SESSION['error'])): ?>
-    <div class="alert alert-danger shadow-sm border-0"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+    <div class="alert alert-danger shadow-sm border-0 alert-dismissible fade show"><i class="bx bx-error-circle me-2"></i><?= $_SESSION['error']; unset($_SESSION['error']); ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 <?php endif; ?>
 
 <!-- 1. Search Form On Top -->
@@ -30,7 +43,6 @@
                 <label class="form-label">Category</label>
                 <select name="category_id" class="form-select">
                     <option value="">All Categories</option>
-                    <!-- Categories will be populated dynamically by the controller -->
                     <?php foreach ($categories ?? [] as $cat): ?>
                         <option value="<?= $cat['id'] ?>" <?= ($filters['category_id'] ?? '') == $cat['id'] ? 'selected' : '' ?>>
                             <?= htmlspecialchars($cat['name'], ENT_QUOTES) ?>
@@ -46,36 +58,38 @@
                     <option value="hidden" <?= ($filters['status'] ?? '') === 'hidden' ? 'selected' : '' ?>>Hidden</option>
                 </select>
             </div>
-            <!-- User Type Filter -->
-            <div class="col-md-2">
-                <label class="form-label">User Type</label>
-                <select name="role" class="form-select">
-                    <option value="">All User Types</option>
-                    <option value="super_admin" <?= ($filters['role'] ?? '') === 'super_admin' ? 'selected' : '' ?>>Super Admin</option>
-                    <option value="sub_admin" <?= ($filters['role'] ?? '') === 'sub_admin' ? 'selected' : '' ?>>Sub Admin</option>
-                    <option value="user" <?= ($filters['role'] ?? '') === 'user' ? 'selected' : '' ?>>Registered User</option>
-                </select>
-            </div>
+            
+            <!-- Hide from Standard Users -->
+            <?php if ($isAdmin || $isSubAdmin): ?>
+                <div class="col-md-2">
+                    <label class="form-label">User Type</label>
+                    <select name="role" class="form-select">
+                        <option value="">All User Types</option>
+                        <option value="super_admin" <?= ($filters['role'] ?? '') === 'super_admin' ? 'selected' : '' ?>>Super Admin</option>
+                        <option value="sub_admin" <?= ($filters['role'] ?? '') === 'sub_admin' ? 'selected' : '' ?>>Sub Admin</option>
+                        <option value="user" <?= ($filters['role'] ?? '') === 'user' ? 'selected' : '' ?>>Registered User</option>
+                    </select>
+                </div>
 
-            <!-- Author Name Filter -->
-            <div class="col-md-2">
-                <label class="form-label">Author</label>
-                <select name="author_id" class="form-select">
-                    <option value="">All Authors</option>
-                    <?php foreach ($authors ?? [] as $auth): ?>
-                        <option value="<?= $auth['id'] ?>" <?= ($filters['author_id'] ?? '') == $auth['id'] ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($auth['username'], ENT_QUOTES) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+                <div class="col-md-2">
+                    <label class="form-label">Author</label>
+                    <select name="author_id" class="form-select">
+                        <option value="">All Authors</option>
+                        <?php foreach ($authors ?? [] as $auth): ?>
+                            <option value="<?= $auth['id'] ?>" <?= ($filters['author_id'] ?? '') == $auth['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($auth['username'], ENT_QUOTES) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+
             <div class="col-md-2">
                 <label class="form-label">Start Date</label>
                 <input type="date" name="start_date" class="form-control" value="<?= htmlspecialchars($filters['start_date'] ?? '', ENT_QUOTES) ?>">
             </div>
-            <!-- End Date Filter -->
             <div class="col-md-2">
-                <label class="form-label fw-bold text-muted small">End Date</label>
+                <label class="form-label text-muted small">End Date</label>
                 <input type="date" name="end_date" class="form-control form-control-sm" value="<?= htmlspecialchars($filters['end_date'] ?? '') ?>">
             </div>
             <div class="col-md-3">
@@ -103,7 +117,13 @@
                 </thead>
                 <tbody>
                     <?php if (!empty($posts)): ?>
-                        <?php foreach ($posts as $post): ?>
+                        <?php foreach ($posts as $post): 
+                            // Post-Level UI Permissions
+                            $isOwner = $post['author_id'] == $currentUserId;
+                            $canEdit = $isAdmin || ($isSubAdmin && in_array('edit_blog', $perms)) || $isOwner;
+                            $canStatus = $isAdmin || ($isSubAdmin && in_array('status_blog', $perms)) || $isOwner;
+                            $canDelete = $isAdmin || ($isSubAdmin && in_array('delete_blog', $perms)) || $isOwner;
+                        ?>
                             <tr>
                                 <td class="fw-medium text-truncate" style="max-width: 250px;">
                                     <?= htmlspecialchars($post['title'], ENT_QUOTES, 'UTF-8') ?>
@@ -128,31 +148,36 @@
                                         </button>
                                         <ul class="dropdown-menu">
                                             <li>
-                                                <!-- View Public Post -->
                                                 <a class="dropdown-item text-primary" href="/post/view?id=<?= $post['id'] ?>" target="_blank">
                                                     <i class="bx bx-show me-1"></i> View
                                                 </a>
                                             </li>
+                                            
+                                            <?php if ($canEdit): ?>
                                             <li>
-                                                <!-- Edit Post -->
                                                 <a class="dropdown-item text-info" href="/post/edit?id=<?= $post['id'] ?>">
                                                     <i class="bx bx-edit me-1"></i> Edit
                                                 </a>
                                             </li>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($canStatus): ?>
                                             <li>
-                                                <!-- Hide/Show Post Modal Trigger -->
                                                 <a class="dropdown-item <?= $post['status'] === 'published' ? 'text-warning' : 'text-success' ?>" href="#" data-bs-toggle="modal" data-bs-target="#statusModal<?= $post['id'] ?>">
                                                     <i class="bx <?= $post['status'] === 'published' ? 'bx-hide' : 'bx-bulb' ?> me-1"></i> 
                                                     <?= $post['status'] === 'published' ? 'Hide Post' : 'Publish Post' ?>
                                                 </a>
                                             </li>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($canDelete): ?>
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                <!-- Delete Post Modal Trigger -->
                                                 <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal<?= $post['id'] ?>">
                                                     <i class="bx bx-trash me-1"></i> Delete
                                                 </a>
                                             </li>
+                                            <?php endif; ?>
                                         </ul>
                                     </div>
                                 </td>
@@ -167,7 +192,7 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <?= $post['status'] === 'published' ? 'Are you sure you want to hide this post? It will no longer be visible to the public.' : 'Are you sure you want to publish this post again? It will be publicly visible.' ?>
+                                            <?= $post['status'] === 'published' ? 'Are you sure you want to hide this post?' : 'Are you sure you want to publish this post again?' ?>
                                         </div>
                                         <div class="modal-footer">
                                             <form action="/post/status" method="POST">
@@ -207,7 +232,7 @@
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">No posts found matching your criteria.</td>
+                            <td colspan="6" class="text-center text-muted py-4">No posts found matching your criteria.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
